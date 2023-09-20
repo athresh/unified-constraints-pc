@@ -8,7 +8,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from spn.algorithms.layerwise.type_checks import check_valid
-from spn.algorithms.layerwise.utils import SamplingContext, logsumexp
+from spn.algorithms.layerwise.utils import SamplingContext
 
 logger = logging.getLogger(__name__)
 
@@ -81,37 +81,28 @@ class Sum(AbstractLayer):
         """Hack to obtain the current device, this layer lives on."""
         return self.weights.device
 
-    def forward(self, x: torch.Tensor, dropout_inference=0.0, dropout_cf=False, vars=None,
-                ll_correction=False):
+    def forward(self, x: torch.Tensor):
         """
-        Sum layer forward pass.
+        Sum layer foward pass.
 
         Args:
             x: Input of shape [batch, in_features, in_channels].
-            dropout_inference (float, optional): The dropout p parameter to use at inference time.
-            dropout_cf (bool, optional): Whether to use the closed-form dropout at inference time.
-            vars: The variance, input from the bottom layer.
-            ll_correction (bool, optional): Whether to use the LL correction or not.
 
         Returns:
-            torch.Tensor: Output of shape [batch, in_features, out_channels]. It returns two tensors in case
-            TDI is performed. The first tensor corresponds to the expectations of the LL and the second one to
-            the corresponding variance.
+            torch.Tensor: Output of shape [batch, in_features, out_channels]
         """
         # Save input if input cache is enabled
         if self._is_input_cache_enabled:
             self._input_cache = x.clone()
 
         # Apply dropout: Set random sum node children to 0 (-inf in log domain)
-        if self.training and self.dropout > 0.0:
+        if self.dropout > 0.0 and self.training:
             dropout_indices = self._bernoulli_dist.sample(x.shape).bool()
-            while torch.any(torch.all(dropout_indices, dim=2)):
-                dropout_indices = self._bernoulli_dist.sample(x.shape).bool()
             x[dropout_indices] = np.NINF
 
         # Dimensions
-        N, D, IC, R = x.size()
-        OC = self.weights.size(2)
+        n, d, ic, r = x.size()
+        oc = self.weights.size(2)
 
         x = x.unsqueeze(3)  # Shape: [n, d, ic, 1, r]
 
@@ -120,45 +111,15 @@ class Sum(AbstractLayer):
         logweights = F.log_softmax(self.weights, dim=1)
 
         # Multiply (add in log-space) input features and weights
-        log_probs = x + logweights  # Shape: [n, d, ic, oc, r]
-
-        if dropout_inference > 0.0 and dropout_cf:
-            log_q = np.log(1 - dropout_inference)
-            log_p = np.log(dropout_inference)
+        x = x + logweights  # Shape: [n, d, ic, oc, r]
 
         # Compute sum via logsumexp along in_channels dimension
-        log_probs = torch.logsumexp(log_probs, dim=2)  # Shape: [n, d, oc, r] #
-
-        if ll_correction and dropout_inference > 0.0 and dropout_cf:
-            log_probs += log_q
+        x = torch.logsumexp(x, dim=2)  # Shape: [n, d, oc, r]
 
         # Assert correct dimensions
-        assert log_probs.size() == (N, D, OC, R)
-        assert log_probs.isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
+        assert x.size() == (n, d, oc, r)
 
-        if vars is not None:
-            if dropout_cf:
-                squared_weights = logweights * 2
-                squared_exps = x * 2
-                input_vars = vars.unsqueeze(3)
-
-                log_var_plus_exp = torch.logsumexp(torch.stack((input_vars, squared_exps + log_p), dim=-1), dim=-1)
-                log_vars = torch.logsumexp(squared_weights + log_var_plus_exp, dim=2)
-                if ll_correction:
-                    log_vars += log_q
-                else:
-                    log_vars -= log_q
-            else:
-                # when the sum node corresponds to a root node
-                log_vars = torch.logsumexp((logweights * 2 + vars.unsqueeze(3)), dim=2)
-
-            assert log_vars.isnan().sum() == 0, "NaN values encountered while propagating bottom-up from a Sum node"
-            # NOTE the next assert might be excessive since we could get -inf as valid and legit value
-            assert log_vars.isfinite().sum() > 0, "No finite values while propagating bottom-up from a Sum node"
-
-            return log_probs, log_vars
-
-        return log_probs
+        return x
 
     def sample(self, n: int = None, context: SamplingContext = None) -> SamplingContext:
         """Method to sample from this layer, based on the parents output.
@@ -286,64 +247,16 @@ class Product(AbstractLayer):
         """Hack to obtain the current device, this layer lives on."""
         return self._conv_weights.device
 
-    def _forward_cf(self, x: torch.Tensor, dropout_inference=0.0):
-        """
-        Forward method to perform TDI. It proceeds similarly to the conventional forward method, but it propagates
-        two tensors: one for the expectations and one for the variances.
-        """
-        exps, vars = x
-
-        # Only one product node
-        if self.cardinality == exps.shape[1]:
-            exps = exps.sum(1, keepdim=True)
-            vars = vars  # TODO implement variance computation for a product node in this special case
-            raise NotImplementedError()
-
-        # Special case: if cardinality is 1 (one child per product node), this is a no-op
-        if self.cardinality == 1:
-            assert exps.isnan().sum() == 0
-            assert vars.isnan().sum() == 0
-            return exps, vars
-
-        # Pad if in_features % cardinality != 0
-        if self._pad > 0:
-            exps = F.pad(exps, pad=(0, 0, 0, 0, 0, self._pad), value=0)
-
-        # Dimensions
-        N, D, C, R = exps.size()
-        D_out = D // self.cardinality
-
-        # Compute the variance of a product node
-        # Use convolution with 3D weight tensor filled with ones to simulate the product node
-        exps = exps.unsqueeze(1)  # Shape: [n, 1, d, c, r]
-        result = F.conv3d(exps, weight=self._conv_weights, stride=(self.cardinality, 1, 1))
-
-        # Remove simulated channel
-        result = result.squeeze(1)
-        sub_mask = torch.tensor([1, -1])
-        # vars = logsumexp(vars, result * 2, mask=sub_mask)
-
-        assert result.size() == (N, D_out, C, R)
-        assert result.isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
-        # This holds only right after leaves i.e. the only place where products are used instead of cross products
-        return result, torch.zeros_like(result).log()
-
-
-    def forward(self, x: torch.Tensor, dropout_inference=0.0, dropout_cf=False):
+    def forward(self, x: torch.Tensor):
         """
         Product layer forward pass.
 
         Args:
             x: Input of shape [batch, in_features, channel].
-            dropout_inference (float, optional): The dropout parameter p to use when performing inference.
-            dropout_cf: (bool, optional) whether to apply the closed-form dropout at inference (TDI).
 
         Returns:
             torch.Tensor: Output of shape [batch, ceil(in_features/cardinality), channel].
         """
-        if isinstance(x, tuple) and dropout_cf:
-            return self._forward_cf(x, dropout_inference=dropout_inference)
-
         # Only one product node
         if self.cardinality == x.shape[1]:
             return x.sum(1, keepdim=True)
@@ -371,8 +284,7 @@ class Product(AbstractLayer):
         return result
 
     def sample(self, n: int = None, context: SamplingContext = None) -> SamplingContext:
-        """
-        Method to sample from this layer, based on the parents output.
+        """Method to sample from this layer, based on the parents output.
 
         Args:
             n (int): Number of instances to sample.
@@ -472,19 +384,15 @@ class CrossProduct(AbstractLayer):
         """Hack to obtain the current device, this layer lives on."""
         return self.unraveled_channel_indices.device
 
-    def forward(self, x: torch.Tensor, dropout_inference=0.0, dropout_cf=False, vars=None, ll_correction=False):
+    def forward(self, x: torch.Tensor):
         """
         Product layer forward pass.
 
         Args:
             x: Input of shape [batch, in_features, channel].
-            vars: The variances obtained as input from the previous layer.
-            dropout_cf: (bool) whether to apply the closed-form dropout during inference
 
         Returns:
-            torch.Tensor: Output of shape [batch, ceil(in_features/2), channel * channel]. When performing TDI (i.e.,
-            dropout_inference > 0.0 and dropout_cf = True) it returns two tensors: one for the LL expectations and one
-            for the corresponding variances.
+            torch.Tensor: Output of shape [batch, ceil(in_features/2), channel * channel].
         """
         # Check if padding to next power of 2 is necessary
         if self.in_features != x.shape[1]:
@@ -494,12 +402,9 @@ class CrossProduct(AbstractLayer):
             # Pad marginalized node
             x = F.pad(x, pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
 
-            if vars is not None and dropout_cf:
-                vars = F.pad(vars, pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
-
         # Dimensions
-        N, D, C, R = x.size()
-        D_out = D // self.cardinality
+        n, d, c, r = x.size()
+        d_out = d // self.cardinality
 
         # Build outer sum, using broadcasting, this can be done with
         # modifying the tensor dimensions:
@@ -513,38 +418,10 @@ class CrossProduct(AbstractLayer):
 
         # Put the two channel dimensions from the outer sum into one single dimension:
         # [n, d/2, c, c, r] -> [n, d/2, c * c, r]
-        result = result.view(N, D_out, C * C, R)
+        result = result.view(n, d_out, c * c, r)
 
-        assert result.size() == (N, D_out, C * C, R)
-
-        if vars is not None and dropout_cf:
-            left_vars = vars[:, self._scopes[0, :], :, :].unsqueeze(3).to(x.device)
-            right_vars = vars[:, self._scopes[1, :], :, :].unsqueeze(2).to(x.device)
-
-            left_exp_squared = left * 2
-            right_exp_squared = right * 2
-
-            # perform variance computation at product nodes
-            var_right_term = left_exp_squared + right_exp_squared
-
-            var_left_term_left = logsumexp(left_vars, left_exp_squared)
-            var_left_term_right = logsumexp(right_vars, right_exp_squared)
-
-            var_left_term = var_left_term_left + var_left_term_right
-
-            mask = torch.tensor([1, -1])
-            log_var_prod = logsumexp(var_left_term, var_right_term, mask=mask)
-
-            # Put the two channel dimensions from the outer sum into one single dimension:
-            log_var_prod = log_var_prod.view(N, D_out, C * C, R)
-            assert log_var_prod.size() == (N, D_out, C * C, R)
-
-            assert result.isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
-            assert log_var_prod.isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
-
-            return result, log_var_prod
-        else:
-            return result
+        assert result.size() == (n, d_out, c * c, r)
+        return result
 
     def sample(self, n: int = None, context: SamplingContext = None) -> SamplingContext:
         """Method to sample from this layer, based on the parents output.
