@@ -64,8 +64,7 @@ class Train:
         """
         logger = self.logger
         trainset, validset, testset = gen_dataset(self.cfg.dataset.datadir,
-                                                           self.cfg.dataset.name,
-                                                           self.cfg.dataset.feature)
+                                                           self.cfg.dataset.name)
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size

@@ -9,7 +9,7 @@ from torch import nn
 from spn.algorithms.layerwise.distributions import Leaf
 from spn.algorithms.layerwise.layers import CrossProduct, Sum
 from spn.algorithms.layerwise.type_checks import check_valid
-from spn.algorithms.layerwise.utils import provide_evidence, SamplingContext, logsumexp
+from spn.algorithms.layerwise.utils import provide_evidence, SamplingContext
 from spn.experiments.RandomSPNs_layerwise.distributions import IndependentMultivariate, RatNormal, truncated_normal_
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 def invert_permutation(p: torch.Tensor):
     """
-    (left - maxes).exp() * mask[0] + (right - maxes).exp() * mask[1]
-    The argument p is assumed to be some permutation of 0, 1, ..., len(p)-1. 
+    The argument p is assumed to be some permutation of 0, 1, ..., len(p)-1.
     Returns an array s, where s[i] gives the index of i in p.
     Taken from: https://stackoverflow.com/a/25535723, adapted to PyTorch.
     """
@@ -91,7 +90,8 @@ class RatSpn(nn.Module):
     """
     RAT SPN PyTorch implementation with layer-wise tensors.
 
-    See also: https://proceedings.mlr.press/v115/peharz20a.html
+    See also:
+    https://arxiv.org/abs/1806.01910
     """
 
     def __init__(self, config: RatSpnConfig):
@@ -147,149 +147,12 @@ class RatSpn(nn.Module):
 
         return x
 
-    def _forward_cf(self, x: torch.Tensor, dropout_inference, ll_correction=False):
-        """
-        Run the forward pass with Tractable Dropout Inference. It returns the expectations of the classification
-        probabilities together, the (marginal) data likelihood, the conditional likelihood P(X|Y) together with their
-        corresponding variances.
-
-        Args:
-            x: Input.
-            dropout_inference: The dropout p paramter for TDI.
-            ll_correction: Whether to apply the LL correction for dropout.
-
-        Returns:
-            object: Tuple of tensors with the expectations of the classification probabilities with the corresponding
-            variance, the expectations of the marginal data likelihood with the corresponding variances, the expectation
-            of the conditional likelihood P(X|Y) with the corresponding variances.
-        """
-        x, vars = self._leaf(x, dropout_inference=dropout_inference, dropout_cf=True)
-        assert x.isnan().sum() == 0, breakpoint()
-        assert vars.isnan().sum() == 0, breakpoint()
-
-        x, vars = self._forward_layers_cf(x, vars, dropout_inference=dropout_inference, ll_correction=ll_correction)
-        assert x.shape == vars.shape, "shape of expectations and variances is different"
-        assert x.isnan().sum() == 0, breakpoint()
-        assert vars.isnan().sum() == 0, breakpoint()
-
-        # Merge results from the different repetitions into the channel dimension
-        n, d, c, r = x.size()
-        assert d == 1  # number of features should be 1 at this point
-        x = x.view(n, d, c * r, 1)
-        vars = vars.view(n, d, c * r, 1)
-
-        # Apply C sum node outputs
-        # do not apply dropout at the root node but propagate uncertainty estimations
-        x, vars = self.root(x, dropout_inference=dropout_inference, dropout_cf=False, vars=vars)
-        assert x.isnan().sum() == 0, breakpoint()
-        assert vars.isnan().sum() == 0, breakpoint()
-
-        # Remove repetition dimension
-        x = x.squeeze(3)
-        vars = vars.squeeze(3)
-
-        # Remove in_features dimension
-        x = x.squeeze(1)
-        vars = vars.squeeze(1)
-
-        # keep one copy of the root heads' output
-        heads_output = x.detach().clone()
-
-        # # compute class probs
-        vars_copy = vars.detach().clone()
-
-        # we assume class priors are uniform: 1 / n_of_classes
-        c_i = torch.log(torch.Tensor([1 / self.config.C])).to(x.device)  # 1 / C
-
-        # the variance for each predicted class probabilities decomposes in a product of two terms
-        # here we separate its computation
-        left_term_numerator = x * 2 + c_i * 2
-        left_term_denominator = torch.logsumexp(x + c_i, dim=1) * 2
-        left_term = left_term_numerator - left_term_denominator.reshape((-1, 1)).expand(-1, self.config.C)
-
-        # the right term is composed via the addition/subtraction of 3 terms: a - b + c]
-        # compute a
-        a_numerator = vars + c_i * 2
-        a_denominator = x * 2 + c_i * 2
-        a_term = a_numerator - a_denominator
-
-        # compute b
-        b_denominator = x + c_i + torch.logsumexp(x, dim=1).reshape((-1, 1)).expand(-1, self.config.C) + c_i
-        b_term = torch.log(torch.Tensor([2])).to(x.device) + vars + c_i * 2 - b_denominator
-
-        # compute c
-        c_numerator = torch.logsumexp(vars + c_i * 2, dim=1)
-        c_denominator = torch.logsumexp(x * 2 + c_i * 2, dim=1)
-        c_term = c_numerator - c_denominator
-
-        mask = torch.tensor([1, -1]).to(x.device)
-
-        right_term_1 = logsumexp(a_term, c_term.reshape((-1, 1)).expand(-1, self.config.C),
-                                 mask=torch.tensor([1, 1]).to(a_term.device))
-        right_term = logsumexp(right_term_1, b_term, mask=torch.tensor([1, -1]).to(a_term.device))
-        # Usually these small negative values come from numerical approximation issue, from difference of (almost) equal
-        # numbers that should have 0 as outcome).
-        right_term = torch.where(right_term.isnan(), torch.tensor([-float('inf')]).to(right_term.device), right_term)
-
-        vars = left_term + right_term
-
-        # compute the second order Taylor expansion for the expectations
-        # the calculation involves three terms h - i + l
-        # compute h
-        h_numerator = x + c_i
-        h_denominator = torch.logsumexp(x, dim=1).reshape((-1, 1)).expand(-1, self.config.C) + c_i
-        h_term = h_numerator - h_denominator
-
-        ll_x = torch.logsumexp(x, dim=1) + c_i
-        var_x = c_numerator
-
-
-        # compute i:
-        i_term = (vars_copy + c_i * 2) - (h_denominator * 2)
-
-        # compute l
-        l_numerator = x + c_i + torch.logsumexp(vars_copy, dim=1).reshape((-1, 1)).expand(-1, self.config.C) + c_i * 2
-        l_denominator = h_denominator * 3
-        l_term = l_numerator - l_denominator
-
-        # Update x with its Taylor expansion...
-        # Here as well, we need to manage negative values result of the difference otherwise
-        # would be impossible to operate in the log space
-        x = logsumexp(logsumexp(h_term, l_term), i_term, mask=mask)
-        x = torch.where(x.isnan(), torch.tensor([-float('inf')]).to(x.device), x)
-
-        assert x.isnan().sum() == 0, breakpoint()
-        assert vars.isnan().sum() == 0, breakpoint()
-
-        return x, vars, ll_x, var_x, heads_output, vars_copy
-
-    def _forward_layers_cf(self, x, vars, dropout_inference=0.0, ll_correction=False):
-        """
-        Perform TDI through the inner layers (i.e. products and sums).
-
-        Args:
-            x: Input.
-            vars: The variances.
-            dropout_inference: The dropout p parameter to use for TDI.
-            ll_correction: Whethter to apply the LL correction for dropout.
-
-        Returns: Two tensors i.e. the expectations of the likelihood and the corresponding variances.
-
-        """
-        for layer in self._inner_layers:
-            x, vars = layer(x, dropout_inference=dropout_inference, dropout_cf=True, vars=vars,
-                            ll_correction=ll_correction)
-        return x, vars
-
-    def forward(self, x: torch.Tensor, dropout_inference=0.0, dropout_cf=False,
-                ll_correction=False) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through RatSpn. Computes the conditional log-likelihood P(X | C).
 
         Args:
             x: Input.
-            dropout_inference: The dropout p parameter to use at inference time.
-            dropout_cf: Whether to use the closed-form dropout at inference time.
 
         Returns:
             torch.Tensor: Conditional log-likelihood P(X | C) of the input.
@@ -297,14 +160,11 @@ class RatSpn(nn.Module):
         # Apply feature randomization for each repetition
         x = self._randomize(x)
 
-        if dropout_cf:
-            return self._forward_cf(x, dropout_inference, ll_correction)
-
         # Apply leaf distributions
-        x = self._leaf(x, dropout_inference=0.0, dropout_cf=dropout_cf)
+        x = self._leaf(x)
 
         # Pass through intermediate layers
-        x = self._forward_layers(x, dropout_inference=dropout_inference, dropout_cf=dropout_cf)
+        x = self._forward_layers(x)
 
         # Merge results from the different repetitions into the channel dimension
         n, d, c, r = x.size()
@@ -322,22 +182,19 @@ class RatSpn(nn.Module):
 
         return x
 
-
-    def _forward_layers(self, x, dropout_inference=0.0, dropout_cf=False):
+    def _forward_layers(self, x):
         """
         Forward pass through the inner sum and product layers.
 
         Args:
             x: Input.
-            dropout_inference: The dropout p parameter to use at inference time.
-            dropout_cf: Whether to use the closed-form dropout at inference time.
 
         Returns:
             torch.Tensor: Output of the last layer before the root layer.
         """
         # Forward to inner product and sum layers
         for layer in self._inner_layers:
-            x = layer(x, dropout_inference=dropout_inference, dropout_cf=dropout_cf)
+            x = layer(x)
         return x
 
     def _build(self):

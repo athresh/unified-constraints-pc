@@ -30,7 +30,7 @@ class RatNormal(Leaf):
         min_mean: float = None,
         max_mean: float = None,
     ):
-        """Create a gaussian layer.
+        """Creat a gaussian layer.
 
         Args:
             out_channels: Number of parallel representations for each input feature.
@@ -62,7 +62,6 @@ class RatNormal(Leaf):
             sigma = 1.0
 
         means = self.means
-
         if self.max_mean:
             assert self.min_mean is not None
             mean_range = self.max_mean - self.min_mean
@@ -84,7 +83,7 @@ class IndependentMultivariate(Leaf):
         leaf_base_kwargs: Dict = None,
     ):
         """
-        Create multivariate distribution that only has non-zero values in the covariance matrix on the diagonal.
+        Create multivariate distribution that only has non zero values in the covariance matrix on the diagonal.
 
         Args:
             out_channels: Number of parallel representations for each input feature.
@@ -119,25 +118,16 @@ class IndependentMultivariate(Leaf):
         if isinstance(self.base_leaf, RatNormal):
             truncated_normal_(self.base_leaf.stds, std=0.5)
 
-    def forward(self, x: torch.Tensor, dropout_inference=0.0, dropout_cf=False):
+    def forward(self, x: torch.Tensor):
         # Pass through base leaf
-        x = self.base_leaf(x, dropout_inference=dropout_inference, dropout_cf=dropout_cf)
+        x = self.base_leaf(x)
 
         if self._pad:
-            if dropout_cf:
-                # Pad marginalized node
-                log_exps = F.pad(x[0], pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
-                log_vars = F.pad(x[1], pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
-                x = (log_exps, log_vars)
-            else:
-                # Pad marginalized node
-                x = F.pad(x, pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
+            # Pad marginalized node
+            x = F.pad(x, pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)
 
         # Pass through product layer
-        x = self.prod(x, dropout_inference=dropout_inference, dropout_cf=dropout_cf)
-        if dropout_cf:
-            assert x[0].isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
-            assert x[1].isnan().sum() == 0, "NaN values encountered while performing bottom-up evaluation"
+        x = self.prod(x)
         return x
 
     def _get_base_distribution(self):
