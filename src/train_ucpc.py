@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -6,6 +7,9 @@ from spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpnConfig
 from spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data
+from utils.utils import visualize_3d
+from utils.selectors import get_sim_dataloader
+from constraint.constraints import GeneralizationConstraint
 import time
 import argparse
 
@@ -16,7 +20,6 @@ class Train:
         self.cfg = config_data
         self.logger = SummaryWriter()
 
-
     def model_eval_loss(self, data_loader, model, lmbda=0):
         loss = 0
         with torch.no_grad():
@@ -24,18 +27,11 @@ class Train:
                 inputs = batch
                 inputs = inputs.to(self.cfg.train_args.device)
                 outputs = model(inputs)
-                loss = -outputs.sum() / (inputs.shape[0])
-
-                # loss_nll = -outputs.sum() / (inputs.shape[0])
-                # if lmbda != 0:
-                #     loss_fn = nn.CrossEntropyLoss(reduction="sum")
-                #     loss_ce = loss_fn(outputs, targets)
-                #
-                # loss += (1 - lmbda) * loss_nll + lmbda * loss_ce
+                loss += outputs.sum()
         loss /= len(data_loader.dataset)
-        return loss
+        return loss.item()
 
-    def make_spn(S, I, R, D, F, device) -> RatSpn:
+    def make_spn(self, S, I, R, D, F, C, device) -> RatSpn:
         """Construct the RatSpn"""
 
         # Setup RatSpnConfig
@@ -45,7 +41,8 @@ class Train:
         config.D = D
         config.I = I
         config.S = S
-        config.C = 10
+        config.C = C
+        config.dropout = 0.0
         config.leaf_base_class = RatNormal
         config.leaf_base_kwargs = {}
 
@@ -68,7 +65,7 @@ class Train:
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size
-        tst_batch_size = self.cfg.dataloader.batch_size
+        tst_batch_size = 1000
 
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=trn_batch_size,
                                                   shuffle=False, pin_memory=True)
@@ -79,67 +76,74 @@ class Train:
         tstloader = torch.utils.data.DataLoader(testset, batch_size=tst_batch_size,
                                                  shuffle=False, pin_memory=True)
 
-        model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F, self.cfg.train_args.device)
+        model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
+                              self.cfg.model.C, self.cfg.train_args.device)
         optimizer = optim.Adam(model.parameters(), lr=self.cfg.train_args.lr)
-
+        trn_losses = []
+        val_losses = []
+        tst_losses = []
+        lmbda = self.cfg.constraint_args.lmbda
         for epoch in range(self.cfg.train_args.num_epochs):
             model.train()
             start_time = time.time()
-
+            total_violation = 0
             for batch_idx, batch in enumerate(trainloader):
                 inputs = batch.to(self.cfg.train_args.device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                loss = -outputs.sum() / (inputs.shape[0])
+                if self.cfg.constraint_args.constrained:
+                    if (epoch + 1) % 10 == 0:
+                        lmbda = np.min([lmbda * 2, 100000])
+                    if self.cfg.constraint_args.type == "generalization":
+                        constraint = GeneralizationConstraint(get_sim_dataloader)
+                    violation = constraint.violation(model, batch, config_data=self.cfg, device=self.cfg.train_args.device, **self.cfg.constraint_args)
+                    total_violation += violation
+                    loss = torch.div(torch.add(-outputs.sum(), torch.mul(violation, lmbda)), (inputs.shape[0]))
+                    if (epoch + 1) % 10 == 0:
+                        print(-outputs.sum())
+                        print(violation)
+                        print(loss)
+                        print(lmbda)
+                        print(inputs.shape[0])
+                else:
+                    loss = -outputs.sum() / inputs.shape[0]
                 loss.backward()
                 optimizer.step()
             epoch_time = time.time() - start_time
             print_args = self.cfg.train_args.print_args
 
-        """
-        ################################################# Evaluation Loop #################################################
-        """
-        trn_losses = []
-        val_losses = []
-        tst_losses = []
-        if (epoch + 1) % self.cfg.train_args.print_every == 0:
-            trn_loss = 0
-            val_loss = 0
-            tst_loss = 0
-            model.eval()
-            if ("trn_loss" in print_args):
-                with torch.no_grad():
-                    for batch_idx, batch in enumerate(trainloader):
-                        inputs = batch.to(self.cfg.train_args.device)
-                        outputs = model(inputs)
-                        loss = -outputs.sum() / (inputs.shape[0])
-                        trn_loss += loss.item()
+            """
+            ################################################# Evaluation Loop #################################################
+            """
+            if (epoch + 1) % self.cfg.train_args.print_every == 0:
+                trn_loss = 0
+                val_loss = 0
+                tst_loss = 0
+                model.eval()
+                if ("trn_loss" in print_args):
+                    trn_loss = self.model_eval_loss(trainloader, model)
                     trn_losses.append(trn_loss)
-            if ("val_loss" in print_args):
-                with torch.no_grad():
-                    for batch_idx, batch in enumerate(valloader):
-                        inputs = batch.to(self.cfg.train_args.device)
-                        outputs = model(inputs)
-                        loss = -outputs.sum() / (inputs.shape[0])
-                        val_loss += loss.item()
-                    val_losses.append(trn_loss)
-            if ("tst_loss" in print_args):
-                with torch.no_grad():
-                    for batch_idx, batch in enumerate(tstloader):
-                        inputs = batch.to(self.cfg.train_args.device)
-                        outputs = model(inputs)
-                        loss = -outputs.sum() / (inputs.shape[0])
-                        tst_loss += loss.item()
-                    tst_losses.append(trn_loss)
-        if ("trn_loss" in print_args):
-            self.logger.add_scalar('Train loss', trn_losses, epoch)
-        if ("val_loss" in print_args):
-            self.logger.add_scalar('Val loss', val_losses, epoch)
-        if ("tst_loss" in print_args):
-            self.logger.add_scalar('Test loss', val_losses, epoch)
+                    self.logger.add_scalar('Train loss', np.array(trn_loss), epoch)
+                if ("val_loss" in print_args):
+                    val_loss = self.model_eval_loss(valloader, model)
+                    val_losses.append(val_loss)
+                    self.logger.add_scalar('Val loss', np.array(val_loss), epoch)
+                if ("tst_loss" in print_args):
+                    tst_loss = self.model_eval_loss(tstloader, model)
+                    tst_losses.append(tst_loss)
+                    self.logger.add_scalar('Test loss', np.array(tst_loss), epoch)
+                if self.cfg.constraint_args.constrained:
+                    self.logger.add_scalar('Violation', total_violation, epoch)
+
+            if self.cfg.train_args.visualize:
+                if (epoch + 1) % self.cfg.train_args.visualize_every == 0:
+                    visualize_3d(model, dataset=trainset,
+                                 save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
+        self.logger.close()
+        torch.save(model.state_dict(), self.cfg.train_args.save_model_dir)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_file', type=str)
     args = parser.parse_args()

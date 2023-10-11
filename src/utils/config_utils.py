@@ -4,7 +4,7 @@ from pathlib import Path
 import ast
 import importlib.util
 import copy
-import os
+from dotmap import DotMap
 
 def check_file_exist(filename, msg_tmpl='file "{}" does not exist'):
     if not osp.isfile(filename):

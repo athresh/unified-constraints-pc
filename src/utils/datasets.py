@@ -29,10 +29,10 @@ def csv_file_load(path, dim, save_data=False):
     with open(path) as fp:
         line = fp.readline()
         while line:
-            temp = [i for i in line.strip().split(",")]
+            temp = [i for i in line.strip().split(" ")]
             temp_data = [0] * dim
             count = 0
-            for i in temp[:-1]:
+            for i in temp[:]:
                 # ind, val = i.split(':')
                 temp_data[count] = float(i)
                 count += 1
@@ -42,23 +42,23 @@ def csv_file_load(path, dim, save_data=False):
     return X_data
 
 def gen_dataset(datadir, dset_name, **kwargs):
-    if dset_name == "toy_helix":
+    if dset_name == "helix":
         np.random.seed(42)
         trn_file = os.path.join(datadir, dset_name + '.trn')
         val_file = os.path.join(datadir, dset_name + '.val')
         tst_file = os.path.join(datadir, dset_name + '.tst')
-        data_dims = 2
+        data_dims = 3
         x_trn = csv_file_load(trn_file, dim=data_dims)
         x_val = csv_file_load(val_file, dim=data_dims)
         x_tst = csv_file_load(tst_file, dim=data_dims)
 
-        sc = StandardScaler()
-        x_trn = sc.fit_transform(x_trn)
-        x_val = sc.transform(x_val)
-        x_tst = sc.transform(x_tst)
+        # sc = StandardScaler()
+        # x_trn = sc.fit_transform(x_trn)
+        # x_val = sc.transform(x_val)
+        # x_tst = sc.transform(x_tst)
 
-        fullset = CustomDataset(x_trn)
-        valset = CustomDataset(x_val)
-        testset = CustomDataset(x_tst)
+        fullset = CustomDataset(torch.from_numpy(x_trn))
+        valset = CustomDataset(torch.from_numpy(x_val))
+        testset = CustomDataset(torch.from_numpy(x_tst))
 
         return fullset, valset, testset

@@ -12,7 +12,6 @@ from torch import nn
 from torch.nn import functional as F
 
 from spn.algorithms.layerwise.utils import SamplingContext
-from spn.algorithms.layerwise.clipper import DistributionClipper
 from spn.algorithms.layerwise.layers import AbstractLayer, Sum
 from spn.algorithms.layerwise.type_checks import check_valid
 
