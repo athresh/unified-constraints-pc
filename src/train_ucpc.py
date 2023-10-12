@@ -146,7 +146,7 @@ class Train:
         self.logger.close()
         p = Path(self.cfg.train_args.save_model_dir)
         p.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), self.cfg.train_args.save_model_dir)
+        torch.save(model.state_dict(), self.cfg.train_args.save_model_dir+'.mdl')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
