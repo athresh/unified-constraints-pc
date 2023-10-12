@@ -12,6 +12,7 @@ from utils.selectors import get_sim_dataloader
 from constraint.constraints import GeneralizationConstraint
 import time
 import argparse
+from pathlib import Path
 
 class Train:
     def __init__(self, config_data):
@@ -67,6 +68,7 @@ class Train:
         val_batch_size = self.cfg.dataloader.batch_size
         tst_batch_size = 1000
 
+
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=trn_batch_size,
                                                   shuffle=False, pin_memory=True)
 
@@ -92,26 +94,26 @@ class Train:
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 if self.cfg.constraint_args.constrained:
-                    if (epoch + 1) % 10 == 0:
-                        lmbda = np.min([lmbda * 2, 100000])
+                    # if (epoch + 1) % 10 == 0:
+                    #     lmbda = np.min([lmbda * 2, 100000])
                     if self.cfg.constraint_args.type == "generalization":
                         constraint = GeneralizationConstraint(get_sim_dataloader)
                     violation = constraint.violation(model, batch, config_data=self.cfg, device=self.cfg.train_args.device, **self.cfg.constraint_args)
-                    total_violation += violation
-                    loss = torch.div(torch.add(-outputs.sum(), torch.mul(violation, lmbda)), (inputs.shape[0]))
-                    if (epoch + 1) % 10 == 0:
-                        print(-outputs.sum())
-                        print(violation)
-                        print(loss)
-                        print(lmbda)
-                        print(inputs.shape[0])
+                    total_violation += violation.item()
+                    loss = torch.add(torch.div(-outputs.sum(), inputs.shape[0]), (torch.mul(violation, lmbda)))
+                    # if (epoch + 1) % 10 == 0:
+                    #     print(-outputs.sum())
+                    #     print(violation)
+                    #     print(loss)
+                    #     print(lmbda)
+                    #     print(inputs.shape[0])
                 else:
                     loss = -outputs.sum() / inputs.shape[0]
                 loss.backward()
                 optimizer.step()
             epoch_time = time.time() - start_time
             print_args = self.cfg.train_args.print_args
-
+            total_violation /= self.cfg.train_args.num_epochs
             """
             ################################################# Evaluation Loop #################################################
             """
@@ -137,11 +139,14 @@ class Train:
 
             if self.cfg.train_args.visualize:
                 if (epoch + 1) % self.cfg.train_args.visualize_every == 0:
+                    p = Path(self.cfg.train_args.plots_dir)
+                    p.mkdir(parents=True, exist_ok=True)
                     visualize_3d(model, dataset=trainset,
                                  save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
         self.logger.close()
+        p = Path(self.cfg.train_args.save_model_dir)
+        p.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), self.cfg.train_args.save_model_dir)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -10,13 +10,19 @@ config = dict(
         pin_memory=True,
     ),
     model=dict(
-        name="base",
+        name="RatSPN",
         S=10,
         I=3,
         D=1,
         R=20,
         F=3,
         C=1,
+    ),
+    constraint_args=dict(
+        constrained=False,
+        type="generalization",
+        atol=1e-1,
+        lmbda=1,
     ),
     train_args=dict(
         num_epochs=300,
@@ -28,8 +34,8 @@ config = dict(
         results_dir='results/',
         print_args=["trn_loss", "val_loss", "val_acc", "tst_loss", "tst_acc", "time"],
         return_args=[],
-        plots_dir="../plots/toy_3d/helix/base",
+        plots_dir="../plots/toy_3d/helix/RatSPN",
         visualize=True,
-        save_model_dir="../ckpt/toy_3d/helix/base"
+        save_model_dir="../ckpt/toy_3d/helix/RatSPN"
         )
 )

@@ -4,8 +4,7 @@ import torch
 from torch import nn
 
 
-def get_outputs(data_loader, model, device="cpu", lmbda=0):
-    loss = 0
+def get_outputs(data_loader, model, device="cpu"):
     outputs = None
     for batch_idx, batch in enumerate(data_loader):
         inputs = batch
@@ -32,7 +31,14 @@ class AbstractConstraint(ABC):
         """
         pass
 
-class GeneralizationConstraint(AbstractConstraint):
+class EqualityConstraint(AbstractConstraint):
+    def delta(self, output_1, output_2):
+        delta = torch.sub(output_1, output_2)
+        return delta
+    def degree_violation(self, delta):
+        return torch.sum(torch.abs(delta))
+
+class GeneralizationConstraint(EqualityConstraint):
     def __init__(self, get_sim_dataloader):
         """
         Equality constraint that computes difference in log-likelihood of similar data instances as delta
@@ -44,10 +50,9 @@ class GeneralizationConstraint(AbstractConstraint):
 
     def violation(self, model, dataset, config_data, device="cpu", **kwargs):
         sim_dataloader_1, sim_dataloader_2 = self.get_sim_dataloader(dataset, config_data, **kwargs)
-        model.eval()
         output_1 = get_outputs(sim_dataloader_1, model, device=device)
         output_2 = get_outputs(sim_dataloader_2, model, device=device)
-        delta = torch.square(torch.add(output_1, output_2, alpha=-1))
-        degree_violation = torch.sum(delta)
+        delta = self.delta(output_1, output_2)
+        degree_violation = torch.div(self.degree_violation(delta), len(output_1))
         return degree_violation
 

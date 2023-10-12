@@ -1,7 +1,7 @@
 import torch
 config = dict(
     dataset=dict(
-        name="helix",
+        name="helix_short_appended",
         datadir="../data/toy_3d",
     ),
     dataloader=dict(
@@ -10,7 +10,7 @@ config = dict(
         pin_memory=True,
     ),
     model=dict(
-        name="ucpc",
+        name="RatSPN",
         S=10,
         I=3,
         D=1,
@@ -19,7 +19,7 @@ config = dict(
         C=1,
     ),
     constraint_args=dict(
-        constrained=True,
+        constrained=False,
         type="generalization",
         atol=1e-1,
         lmbda=1,
@@ -34,8 +34,8 @@ config = dict(
         results_dir='results/',
         print_args=["trn_loss", "val_loss", "val_acc", "tst_loss", "tst_acc", "time"],
         return_args=[],
-        plots_dir="../plots/toy_3d/helix/ucpc",
+        plots_dir="../plots/toy_3d/helix_short_appended/RatSPN",
         visualize=True,
-        save_model_dir="../ckpt/toy_3d/helix/ucpc"
+        save_model_dir="../ckpt/toy_3d/helix_short_appended/RatSPN"
         )
 )
