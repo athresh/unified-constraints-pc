@@ -78,8 +78,11 @@ class Train:
         tstloader = torch.utils.data.DataLoader(testset, batch_size=tst_batch_size,
                                                  shuffle=False, pin_memory=True)
 
-        model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
-                              self.cfg.model.C, self.cfg.train_args.device)
+        if self.cfg.model.name == "RatSPN":
+            model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
+                                  self.cfg.model.C, self.cfg.train_args.device)
+        else:
+            raise ValueError("Model not defined")
         optimizer = optim.Adam(model.parameters(), lr=self.cfg.train_args.lr)
         trn_losses = []
         val_losses = []
@@ -98,6 +101,8 @@ class Train:
                     #     lmbda = np.min([lmbda * 2, 100000])
                     if self.cfg.constraint_args.type == "generalization":
                         constraint = GeneralizationConstraint(get_sim_dataloader)
+                    else:
+                        raise ValueError("Constraint not defined")
                     violation = constraint.violation(model, batch, config_data=self.cfg, device=self.cfg.train_args.device, **self.cfg.constraint_args)
                     total_violation += violation.item()
                     loss = torch.add(torch.div(-outputs.sum(), inputs.shape[0]), (torch.mul(violation, lmbda)))
