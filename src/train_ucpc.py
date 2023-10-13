@@ -19,7 +19,11 @@ class Train:
         version = config_data.constraint_args.type
         config_data['version'] = version
         self.cfg = config_data
-        self.logger = SummaryWriter()
+        # self.log_dir = "runs/{}/{}".format(self.cfg.dataset.name, self.cfg.model.name)
+        # p = Path(self.log_dir)
+        # p.mkdir(parents=True, exist_ok=True)
+        log_comment = "_{}_{}".format(self.cfg.dataset.name, self.cfg.model.name)
+        self.logger = SummaryWriter(comment=log_comment)
 
     def model_eval_loss(self, data_loader, model, lmbda=0):
         loss = 0
@@ -78,7 +82,7 @@ class Train:
         tstloader = torch.utils.data.DataLoader(testset, batch_size=tst_batch_size,
                                                  shuffle=False, pin_memory=True)
 
-        if self.cfg.model.name == "RatSPN":
+        if self.cfg.model.name in ["RatSPN", "RatSPN_constrained"]:
             model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
                                   self.cfg.model.C, self.cfg.train_args.device)
         else:
@@ -151,7 +155,7 @@ class Train:
         self.logger.close()
         p = Path(self.cfg.train_args.save_model_dir)
         p.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), self.cfg.train_args.save_model_dir+'.mdl')
+        torch.save(model.state_dict(), self.cfg.train_args.save_model_dir+'/model.mdl')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
