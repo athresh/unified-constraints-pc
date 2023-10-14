@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from .datasets import CustomDataset
+
 def get_sim_dataloader(dataset, config_data, **kwargs):
     cfg = config_data
     mask = None
