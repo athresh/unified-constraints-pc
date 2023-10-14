@@ -30,7 +30,7 @@ config = dict(
 )
 
 config["train_args"] = dict(
-        num_epochs=100,
+        num_epochs=500,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=1,
