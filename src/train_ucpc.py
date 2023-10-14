@@ -13,6 +13,9 @@ from constraint.constraints import GeneralizationConstraint
 import time
 import argparse
 from pathlib import Path
+from packages.pfc.models import EinsumNet, LinearSplineEinsumFlow
+from packages.pfc.config import EinetConfig
+from packages.pfc.components.spn.Graph import random_binary_trees, poon_domingos_structure
 
 class Train:
     def __init__(self, config_data):
@@ -32,6 +35,23 @@ class Train:
         loss /= len(data_loader.dataset)
         return loss.item()
 
+    
+    def make_pfc(self, model_name, num_sums, num_input_distributions, num_repetition, depth, num_vars, num_dims, num_classes, graph_type, leaf_config, device)-> EinsumNet:
+        config = EinetConfig()
+        config.num_input_distributions = num_input_distributions
+        config.num_repetition = num_repetition
+        config.num_sums = num_sums
+        config.graph_type  = graph_type
+        config.depth = depth
+        config.num_classes = num_classes
+        config.device = device
+        config.num_vars = num_vars
+        config.num_dims = num_dims
+        config.leaf_config = leaf_config
+        config.graph = random_binary_trees(config.num_vars, config.depth, config.num_repetition) if graph_type == "random_binary_trees" else None
+        model = LinearSplineEinsumFlow(config).to(device) if "Flow" in model_name else EinsumNet(config).to(device)
+        return model 
+    
     def make_spn(self, S, I, R, D, F, C, device) -> RatSpn:
         """Construct the RatSpn"""
 
@@ -55,6 +75,7 @@ class Train:
 
         print("Using device:", device)
         return model
+    
 
     def train(self):
         """
@@ -81,6 +102,20 @@ class Train:
         if self.cfg.model.name == "RatSPN":
             model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
                                   self.cfg.model.C, self.cfg.train_args.device)
+        elif self.cfg.model.name in ["EinsumNet","EinsumFlow"]:
+            model = self.make_pfc(
+                        self.cfg.model.name,
+                        self.cfg.model.num_sums,
+                        self.cfg.model.num_input_distributions,
+                        self.cfg.model.num_repetition,
+                        self.cfg.model.depth,
+                        self.cfg.model.num_vars,
+                        self.cfg.model.num_dims,
+                        self.cfg.model.num_classes,
+                        self.cfg.model.graph_type,
+                        self.cfg.model.leaf_config,
+                        self.cfg.train_args.device
+                    )
         else:
             raise ValueError("Model not defined")
         optimizer = optim.Adam(model.parameters(), lr=self.cfg.train_args.lr)

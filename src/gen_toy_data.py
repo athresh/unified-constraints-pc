@@ -4,8 +4,10 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
+
 SAVE_DIR = '../data/toy_3d'
 PLOT_DIR = '../plots/toy_3d'
+
 def make_helix(num_data=20000, num_helices=3, c=1, r=1, sd=0.1, test_size=0.5, save_data=False):
     x = np.linspace(0, 2 * num_helices * c * np.pi, num_data)
     y = r * np.sin(x)
@@ -98,3 +100,5 @@ def make_helix_short_appended(num_data=10000, num_helices_train=1, num_helices_t
     return data_trn, data_tst
 
 data_trn, data_tst = make_helix_short_appended(save_data=True)
+data_trn, data_tst = make_helix_short(save_data=True)
+data_trn, data_tst = make_helix(save_data=True)
