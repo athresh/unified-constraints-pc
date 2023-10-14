@@ -26,12 +26,13 @@ def make_helix(num_data=20000, num_helices=3, c=1, r=1, sd=0.1, test_size=0.5, s
         np.savetxt(SAVE_DIR + '/helix' + '.tst', data_tst)
     return data_trn, data_tst
 
-def make_circles(num_data=20000, num_circles=2, c=2, r=1, sd=0.1, test_size=0.5, save_data=False):
+def make_circles(num_data=20000, num_circles=2, c=10, r=1, sd=0.1, test_size=0.5, save_data=False):
     x = [i * c for i in range(num_circles)] * int(num_data/2)
-    y = r * np.sin(x)
-    z = r * np.cos(x)
+    angle = np.linspace(0, 2 * np.pi, num_data)
+    y = r * np.sin(angle)
+    z = r * np.cos(angle)
     circle = np.stack([x,y,z]).T
-    noise = sd * np.random.normal(size=(num_data, 3))
+    noise = np.append(np.zeros(shape=(num_data, 1)), sd * np.random.normal(size=(num_data, 2)), 1)
     data = circle + noise
     data_trn, data_tst = train_test_split(data, test_size=test_size, random_state=42)
     data_tst, data_val = train_test_split(data_tst, test_size=0.5, random_state=42)
@@ -99,6 +100,9 @@ def make_helix_short_appended(num_data=10000, num_helices_train=1, num_helices_t
         np.savetxt(SAVE_DIR + '/helix_short_appended' + '.tst', data_tst)
     return data_trn, data_tst
 
+
 data_trn, data_tst = make_helix_short_appended(save_data=True)
 data_trn, data_tst = make_helix_short(save_data=True)
 data_trn, data_tst = make_helix(save_data=True)
+data_trn, data_tst = make_circles(save_data=True)
+
