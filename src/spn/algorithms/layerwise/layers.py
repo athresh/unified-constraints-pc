@@ -397,7 +397,7 @@ class CrossProduct(AbstractLayer):
         # Check if padding to next power of 2 is necessary
         if self.in_features != x.shape[1]:
             # Compute necessary padding to the next power of 2
-            self._pad = 2 ** np.ceil(np.log2(x.shape[1])).astype(np.int) - x.shape[1]
+            self._pad = 2 ** np.ceil(np.log2(x.shape[1])).astype(int) - x.shape[1]
 
             # Pad marginalized node
             x = F.pad(x, pad=[0, 0, 0, 0, 0, self._pad], mode="constant", value=0.0)

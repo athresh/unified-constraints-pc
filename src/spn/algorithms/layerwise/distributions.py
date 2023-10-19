@@ -153,6 +153,7 @@ class Leaf(AbstractLayer):
         d = self._get_base_distribution()
         x = dist_forward(d, x)
 
+
         x = self._marginalize_input(x)
         x = self._apply_dropout(x)
 

@@ -118,9 +118,9 @@ class IndependentMultivariate(Leaf):
         if isinstance(self.base_leaf, RatNormal):
             truncated_normal_(self.base_leaf.stds, std=0.5)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor):
         # Pass through base leaf
-        x = self.base_leaf(x)
+        x = self.base_leaf(x)*mask
 
         if self._pad:
             # Pad marginalized node

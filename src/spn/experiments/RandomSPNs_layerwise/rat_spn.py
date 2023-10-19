@@ -11,7 +11,7 @@ from spn.algorithms.layerwise.layers import CrossProduct, Sum
 from spn.algorithms.layerwise.type_checks import check_valid
 from spn.algorithms.layerwise.utils import provide_evidence, SamplingContext
 from spn.experiments.RandomSPNs_layerwise.distributions import IndependentMultivariate, RatNormal, truncated_normal_
-
+from typing import List
 logger = logging.getLogger(__name__)
 
 
@@ -147,7 +147,7 @@ class RatSpn(nn.Module):
 
         return x
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, marg_indices: List[int] = None) -> torch.Tensor:
         """
         Forward pass through RatSpn. Computes the conditional log-likelihood P(X | C).
 
@@ -157,11 +157,18 @@ class RatSpn(nn.Module):
         Returns:
             torch.Tensor: Conditional log-likelihood P(X | C) of the input.
         """
+        mask = torch.ones_like(x)
+        if marg_indices:
+            mask[:, (marg_indices,)] = 0
+        mask = self._randomize(mask)
+        mask = mask.unsqueeze(2)
+        mask = mask.repeat(1, 1, self.config.I, 1)
+        
         # Apply feature randomization for each repetition
         x = self._randomize(x)
-
+        
         # Apply leaf distributions
-        x = self._leaf(x)
+        x = self._leaf(x, mask)
 
         # Pass through intermediate layers
         x = self._forward_layers(x)
