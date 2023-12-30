@@ -6,11 +6,11 @@ import torch
 from dataclasses import dataclass
 from torch import nn
 
-from spn.algorithms.layerwise.distributions import Leaf
-from spn.algorithms.layerwise.layers import CrossProduct, Sum
-from spn.algorithms.layerwise.type_checks import check_valid
-from spn.algorithms.layerwise.utils import provide_evidence, SamplingContext
-from spn.experiments.RandomSPNs_layerwise.distributions import IndependentMultivariate, RatNormal, truncated_normal_
+from packages.spn.algorithms.layerwise.distributions import Leaf
+from packages.spn.algorithms.layerwise.layers import CrossProduct, Sum
+from packages.spn.algorithms.layerwise.type_checks import check_valid
+from packages.spn.algorithms.layerwise.utils import provide_evidence, SamplingContext
+from packages.spn.experiments.RandomSPNs_layerwise.distributions import IndependentMultivariate, RatNormal, truncated_normal_
 from typing import List
 logger = logging.getLogger(__name__)
 

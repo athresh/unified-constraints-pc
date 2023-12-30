@@ -7,8 +7,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from spn.algorithms.layerwise.type_checks import check_valid
-from spn.algorithms.layerwise.utils import SamplingContext
+from packages.spn.algorithms.layerwise.type_checks import check_valid
+from packages.spn.algorithms.layerwise.utils import SamplingContext
 
 logger = logging.getLogger(__name__)
 

@@ -3,8 +3,8 @@ import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch import optim
-from spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpnConfig
-from spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
+from packages.spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpnConfig
+from packages.spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data
 from utils.utils import visualize_3d

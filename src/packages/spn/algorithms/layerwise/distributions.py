@@ -11,9 +11,9 @@ from torch import distributions as dist
 from torch import nn
 from torch.nn import functional as F
 
-from spn.algorithms.layerwise.utils import SamplingContext
-from spn.algorithms.layerwise.layers import AbstractLayer, Sum
-from spn.algorithms.layerwise.type_checks import check_valid
+from packages.spn.algorithms.layerwise.utils import SamplingContext
+from packages.spn.algorithms.layerwise.layers import AbstractLayer, Sum
+from packages.spn.algorithms.layerwise.type_checks import check_valid
 
 logger = logging.getLogger(__name__)
 
