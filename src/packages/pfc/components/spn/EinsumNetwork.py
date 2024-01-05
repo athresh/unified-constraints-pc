@@ -143,13 +143,15 @@ class EinsumNetwork(torch.nn.Module):
         """Get indices of marginalized variables."""
         return self.einet_layers[0].get_marginalization_idx()
 
-    def forward(self, x):
+    def forward(self, x, marginalization_idx= None):
         """Evaluate the EinsumNetwork feed forward."""
-
+        if marginalization_idx is not None:
+            self.set_marginalization_idx(marginalization_idx)
         input_layer = self.einet_layers[0]
         input_layer(x=x)
         for einsum_layer in self.einet_layers[1:]:
             einsum_layer()
+        self.set_marginalization_idx([])
         return self.einet_layers[-1].prob[:, :, 0]
 
     def backtrack(self, num_samples=1, class_idx=0, x=None, mode='sampling', **kwargs):

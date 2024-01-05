@@ -16,6 +16,7 @@ from pathlib import Path
 from packages.pfc.models import EinsumNet, LinearSplineEinsumFlow
 from packages.pfc.config import EinetConfig
 from packages.pfc.components.spn.Graph import random_binary_trees, poon_domingos_structure
+import tqdm 
 
 class Train:
     def __init__(self, config_data):
@@ -87,7 +88,7 @@ class Train:
         """
         logger = self.logger
         trainset, validset, testset = gen_dataset(self.cfg.dataset.datadir,
-                                                           self.cfg.dataset.name)
+                                                self.cfg.dataset.name)
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size
