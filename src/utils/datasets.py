@@ -56,4 +56,12 @@ def gen_dataset(datadir, dset_name, **kwargs):
         valset = CustomDataset(torch.from_numpy(x_val))
         testset = CustomDataset(torch.from_numpy(x_tst))
 
+    elif dset_name in ["set-mnist-50"]:
+        fullset = np.load(os.path.join(datadir, 'train_sets.npy'))
+        x_trn, x_val = fullset[:-10000], fullset[-10000:]
+        x_tst = np.load(os.path.join(datadir, 'test_sets.npy'))
+        fullset = CustomDataset(torch.from_numpy(x_trn))
+        valset = CustomDataset(torch.from_numpy(x_val))
+        testset = CustomDataset(torch.from_numpy(x_tst))
+        
         return fullset, valset, testset
