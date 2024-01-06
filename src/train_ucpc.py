@@ -7,7 +7,7 @@ from packages.spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpn
 from packages.spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data
-from utils.utils import visualize_3d
+from utils.utils import visualize_3d, visualize_set_image
 from utils.selectors import get_sim_dataloader
 from constraint.constraints import GeneralizationConstraint
 import time
@@ -186,8 +186,10 @@ class Train:
                 if (epoch + 1) % self.cfg.train_args.visualize_every == 0:
                     p = Path(self.cfg.train_args.plots_dir)
                     p.mkdir(parents=True, exist_ok=True)
-                    visualize_3d(model, dataset=trainset,
-                                 save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
+                    if(self.cfg.dataset.name in ["set-mnist-50"]):
+                        visualize_set_image(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
+                    elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_short_appended", "circle"]):
+                        visualize_3d(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
         self.logger.close()
         p = Path(self.cfg.train_args.save_model_dir)
         p.mkdir(parents=True, exist_ok=True)
