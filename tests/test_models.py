@@ -4,6 +4,7 @@ sys.path.append("./../src/")
 
 from packages.pfc.components.spn.Graph import random_binary_trees
 from packages.pfc.components.spn.EinsumNetwork import EinsumNetwork, Args, NormalArray
+from packages.pfc.components.spn.FlowArray import LinearRationalSpline
 import torch 
 
 class TestEinet(unittest.TestCase):
@@ -19,7 +20,7 @@ class TestEinet(unittest.TestCase):
     args = Args(
             num_classes=1,
             num_input_distributions=num_input_distributions,
-            exponential_family=NormalArray,
+            exponential_family=exponential_family,
             num_sums=num_sums,
             num_var=num_vars
     )
@@ -76,7 +77,29 @@ class TestEinet(unittest.TestCase):
         
         # Validate gradients
         for param in self.einet.parameters():
-            self.assertIsNotNone(param.grad)
+            if(param.requires_grad):
+                self.assertTrue(param.grad is not None)
+
+# class TestPFC(TestEinet):
+#     num_vars                = 8
+#     depth                   = 3
+#     num_repetition          = 5
+#     num_sums                = 6
+#     exponential_family      = LinearRationalSpline
+#     num_input_distributions = 10
+#     batch_size              = 5
+#     graph = random_binary_trees(num_vars, depth, num_repetition)
+#     device = torch.device('cuda')
+#     args = Args(
+#             num_classes=1,
+#             num_input_distributions=num_input_distributions,
+#             exponential_family=exponential_family,
+#             num_sums=num_sums,
+#             num_var=num_vars
+#     )
+#     einet = EinsumNetwork(graph, args)
+#     einet.initialize()
+#     einet.to(device)
     
 if __name__ == '__main__':
     unittest.main()
