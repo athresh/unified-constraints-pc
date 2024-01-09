@@ -38,15 +38,15 @@ def get_sim_dataloader(dataset, config_data, **kwargs):
         sim_dataset_2 = CustomDataset(torch.from_numpy(data2))
         # dataset_1, dataset_2 = torch.utils.data.random_split(sim_dataset, [int(sim_data_size/2), int(sim_data_size/2)],
         #                                                      torch.Generator().manual_seed(42))
-    elif cfg.dataset.name in ['set-mnist-50']:
+    elif cfg.dataset.name in ['set-mnist-50', 'set-mnist-100']:
         def shufflerow(tensor, axis):
             row_perm = torch.rand(tensor.shape[:axis+1]).argsort(axis)  # get permutation indices
             for _ in range(tensor.ndim-axis-1): row_perm.unsqueeze_(-1)
             row_perm = row_perm.repeat(*[1 for _ in range(axis+1)], *(tensor.shape[axis+1:]))  # reformat this for the gather operation
             return tensor.gather(axis, row_perm)
         
-        sim_dataset_1 = dataset
-        sim_dataset_2 = shufflerow(dataset, axis=1)
+        sim_dataset_1 = dataset.repeat(5, 1, 1)
+        sim_dataset_2 = shufflerow(sim_dataset_1.clone(), axis=1)
         
         
     dataloader_1, dataloader_2 = torch.utils.data.DataLoader(sim_dataset_1, batch_size=1000,

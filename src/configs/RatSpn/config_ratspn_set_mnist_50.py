@@ -12,10 +12,10 @@ config = dict(
     model=dict(
         name="RatSPN",
         S=10,
-        I=2,
-        D=1,
+        I=5,
+        D=4,
         R=20,
-        F=50,
+        F=100,
         C=1,
     ),
     constraint_args=dict(

@@ -45,7 +45,7 @@ class ExponentialFamilyArray(torch.nn.Module):
     Please see docstrings of these functions below, for further details.
     """
 
-    def __init__(self, num_var, num_dims, array_shape, num_stats, use_em, **kwargs):
+    def __init__(self, num_var, num_dims, array_shape, num_stats, use_em=False, **kwargs):
         """
         :param num_var: number of random variables (int)
         :param num_dims: dimensionality of random variables (int)
@@ -455,7 +455,7 @@ class NormalArray(ExponentialFamilyArray):
 class BinomialArray(ExponentialFamilyArray):
     """Implementation of Binomial distribution."""
 
-    def __init__(self, num_var, num_dims, array_shape, N, use_em=True):
+    def __init__(self, num_var, num_dims, array_shape, N=1, use_em=True):
         super(BinomialArray, self).__init__(num_var, num_dims, array_shape, num_dims, use_em=use_em)
         self.N = torch.tensor(float(N))
 
@@ -544,7 +544,7 @@ class CategoricalArray(ExponentialFamilyArray):
         if len(x.shape) == 2:
             stats = one_hot(x.long(), self.K)
         elif len(x.shape) == 3:
-            stats = one_hot(x.long(), self.K).reshape(-1, self.num_dims * self.K)
+            stats = one_hot(x.long(), self.K).reshape(-1, self.num_var, self.num_dims * self.K)
         else:
             raise AssertionError("Input must be 2 or 3 dimensional tensor.")
         return stats

@@ -1,6 +1,6 @@
 import torch
 
-num_elements=50
+num_elements=100
 config = dict(
     dataset=dict(
         name=f"set-mnist-{num_elements}",
@@ -8,21 +8,23 @@ config = dict(
     ),
     dataloader=dict(
         shuffle=True,
-        batch_size=64,
+        batch_size=100,
         pin_memory=True,
     ),
     model=dict(
         name="EinsumNet",
-        num_sums=20,
-        num_input_distributions=20,
-        num_repetition=20,
-        depth=5,
-        num_vars=50,
-        num_dims=2,
+        num_sums=10,
+        num_input_distributions=10,
+        num_repetition=5,
+        depth=6,
+        num_vars=num_elements,
+        num_dims=1,
         num_classes=1,
         graph_type='random_binary_trees',
         leaf_type='CategoricalArray',
-        leaf_config=dict(K=28)
+        leaf_config=dict(K=784)
+        # leaf_type='NormalArray',
+        # leaf_config=dict()
     ),
     constraint_args=dict(
         constrained=True,

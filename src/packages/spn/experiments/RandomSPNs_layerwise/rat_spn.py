@@ -134,7 +134,7 @@ class RatSpn(nn.Module):
             torch.Tensor: Randomized input along feature axis. Each repetition has its own permutation.
         """
         # Expand input to the number of repetitions
-        x = x.unsqueeze(2)  # Make space for repetition axis
+        x = x.unsqueeze(-1)  # Make space for repetition axis
         x = x.repeat((1, 1, self.config.R))  # Repeat R times
 
         # Random permutation
@@ -157,6 +157,8 @@ class RatSpn(nn.Module):
         Returns:
             torch.Tensor: Conditional log-likelihood P(X | C) of the input.
         """
+        if(len(x.shape) > 2):
+            x = x.view(x.shape[0], -1)
         mask = torch.ones_like(x)
         if marg_indices:
             mask[:, (marg_indices,)] = 0

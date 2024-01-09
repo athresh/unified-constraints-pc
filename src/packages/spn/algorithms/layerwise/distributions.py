@@ -222,6 +222,44 @@ class Bernoulli(Leaf):
         probs_ratio = torch.sigmoid(self.probs)
         return dist.Bernoulli(probs=probs_ratio)
 
+class Categorical(Leaf):
+    """Categorical layer. Maps each input feature to its categorical log likelihood.
+
+    Probabilities are modeled as unconstrained parameters and are transformed via a softmax function into [0, 1] when needed.
+    """
+
+    def __init__(self, in_features: int, out_channels: int, num_repetitions: int,  num_bins: int, dropout=0.0):
+        """
+        Initializes a categorical distribution with the given parameters.
+        """
+        super().__init__(in_features, out_channels, num_repetitions, dropout)
+
+        # Create logits
+        self.logits = nn.Parameter(torch.randn(1, in_features, out_channels, num_repetitions, num_bins))
+
+    def _get_base_distribution(self):
+        # Use sigmoid to ensure, that probs are in valid range
+        return dist.Categorical(logits=F.log_softmax(self.logits, dim=-1))
+
+
+
+class Binomial(Leaf):
+    """Binomial layer. Maps each input feature to its binomial log likelihood."""
+
+    def __init__(self, in_features: int, out_channels: int, num_repetitions: int,  total_count: int, dropout=0.0):
+        """
+        Initializes a categorical distribution with the given parameters.
+        """
+        super().__init__(in_features, out_channels, num_repetitions, dropout)
+        self.total_count = check_valid(total_count, int, lower_bound=1)
+        # Create binomial parameters as unnormalized log probabilities
+        self.logits = nn.Parameter(torch.randn(1, in_features, out_channels, num_repetitions))
+
+    def _get_base_distribution(self):
+        # Use sigmoid to ensure, that probs are in valid range
+        probs = self.logits.sigmoid()
+        return dist.Binomial(probs=probs, total_count=self.total_count)
+
 
 class MultivariateNormal(Leaf):
     """Multivariate Gaussian layer."""

@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch import optim
 from packages.spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpnConfig
-from packages.spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
+from packages.spn.algorithms.layerwise.distributions import *
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data
 from utils.utils import visualize_3d, visualize_set_image
@@ -41,7 +41,7 @@ class Train:
         return loss.item()
 
     
-    def make_pfc(self, model_name, num_sums, num_input_distributions, num_repetition, depth, num_vars, num_dims, num_classes, graph_type, leaf_config, device)-> EinsumNet:
+    def make_pfc(self, model_name, num_sums, num_input_distributions, num_repetition, depth, num_vars, num_dims, num_classes, graph_type, leaf_type, leaf_config, device)-> EinsumNet:
         config = EinetConfig()
         config.num_input_distributions = num_input_distributions
         config.num_repetition = num_repetition
@@ -52,12 +52,13 @@ class Train:
         config.device = device
         config.num_vars = num_vars
         config.num_dims = num_dims
+        config.leaf_type = leaf_type
         config.leaf_config = leaf_config
         config.graph = random_binary_trees(config.num_vars, config.depth, config.num_repetition) if graph_type == "random_binary_trees" else None
         model = LinearSplineEinsumFlow(config).to(device) if "Flow" in model_name else EinsumNet(config).to(device)
         return model 
     
-    def make_spn(self, S, I, R, D, F, C, device) -> RatSpn:
+    def make_spn(self, S, I, R, D, F, C, leaf_type, leaf_config, device) -> RatSpn:
         """Construct the RatSpn"""
 
         # Setup RatSpnConfig
@@ -69,8 +70,8 @@ class Train:
         config.S = S
         config.C = C
         config.dropout = 0.0
-        config.leaf_base_class = RatNormal
-        config.leaf_base_kwargs = {}
+        config.leaf_base_class = leaf_type
+        config.leaf_base_kwargs = leaf_config
 
         # Construct RatSpn from config
         model = RatSpn(config)
@@ -105,8 +106,12 @@ class Train:
                                                  shuffle=False, pin_memory=True)
 
         if self.cfg.model.name in ["RatSPN", "RatSPN_constrained"]:
-            model = self.make_spn(self.cfg.model.S, self.cfg.model.I, self.cfg.model.R, self.cfg.model.D, self.cfg.model.F,
-                                  self.cfg.model.C, self.cfg.train_args.device)
+            model = self.make_spn(self.cfg.model.S, self.cfg.model.I,
+                                  self.cfg.model.R, self.cfg.model.D,
+                                  self.cfg.model.F, self.cfg.model.C,
+                                  eval(self.cfg.model.leaf_type),
+                                  self.cfg.model.leaf_config,
+                                  self.cfg.train_args.device)
         elif self.cfg.model.name in ["EinsumNet","EinsumFlow"]:
             model = self.make_pfc(
                         self.cfg.model.name,
@@ -118,6 +123,7 @@ class Train:
                         self.cfg.model.num_dims,
                         self.cfg.model.num_classes,
                         self.cfg.model.graph_type,
+                        self.cfg.model.leaf_type,
                         self.cfg.model.leaf_config,
                         self.cfg.train_args.device
                     )
@@ -153,7 +159,7 @@ class Train:
                     #     print(lmbda)
                     #     print(inputs.shape[0])
                 else:
-                    loss = -outputs.sum() / inputs.shape[0]
+                    loss = -outputs.sum() # / inputs.shape[0]
                 loss.backward()
                 optimizer.step()
             epoch_time = time.time() - start_time
@@ -162,7 +168,7 @@ class Train:
             """
             ################################################# Evaluation Loop #################################################
             """
-            if (epoch + 1) % self.cfg.train_args.print_every == 0:
+            if (epoch) % self.cfg.train_args.print_every == 0:
                 trn_loss = 0
                 val_loss = 0
                 tst_loss = 0
@@ -181,12 +187,12 @@ class Train:
                     self.logger.add_scalar('Test loss', np.array(tst_loss), epoch)
                 if self.cfg.constraint_args.constrained:
                     self.logger.add_scalar('Violation', total_violation, epoch)
-
+                print("Epoch: {} | Train loss: {:.4f} | Val loss: {:.4f} | Test loss: {:.4f} | Violation: {:.4f} | Time: {:.4f}".format(epoch, trn_loss, val_loss, tst_loss, total_violation, epoch_time))
             if self.cfg.train_args.visualize:
-                if (epoch + 1) % self.cfg.train_args.visualize_every == 0:
+                if (epoch) % self.cfg.train_args.visualize_every == 0:
                     p = Path(self.cfg.train_args.plots_dir)
                     p.mkdir(parents=True, exist_ok=True)
-                    if(self.cfg.dataset.name in ["set-mnist-50"]):
+                    if(self.cfg.dataset.name in ["set-mnist-50","set-mnist-100"]):
                         visualize_set_image(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
                     elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_short_appended", "circle"]):
                         visualize_3d(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)

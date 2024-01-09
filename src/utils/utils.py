@@ -30,12 +30,19 @@ def visualize_3d(model, dataset, save_dir, epoch=0):
 def visualize_set_image(model, dataset, save_dir, epoch=0, h=28, w=28):
     real_data = dataset.data.cpu().numpy()[np.random.choice(np.arange(0, len(dataset)), 64)]
     gen_data = model.sample(len(real_data)).cpu().numpy()
-    images = set_to_image(gen_data, h=h, w=w) 
-    grid = torchvision.utils.make_grid(images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
-    plt.figure()
-    plt.imshow(grid.permute(1, 2, 0).detach().cpu().numpy())
-    plt.savefig(os.path.join(save_dir, f"{epoch}.png"), bbox_inches="tight")
-    plt.close()
+    
+    real_images = set_to_image(real_data, h=h, w=w) 
+    real_grid = torchvision.utils.make_grid(real_images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+    torchvision.utils.save_image(real_grid, os.path.join(save_dir,"real_data.png"))
+    
+    gen_images = set_to_image(gen_data, h=h, w=w) 
+    gen_grid = torchvision.utils.make_grid(gen_images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+    os.makedirs(os.path.join(save_dir, "generated"), exist_ok=True)
+    torchvision.utils.save_image(gen_grid, os.path.join(save_dir, "generated", f"{epoch}.png"))
+    # plt.figure()
+    # plt.imshow(grid.permute(1, 2, 0).detach().cpu().numpy())
+    # plt.savefig(os.path.join(save_dir, "generated", f"{epoch}.png"), bbox_inches="tight")
+    # plt.close()
     # plt.show()
 
 
@@ -79,11 +86,20 @@ def set_to_image(data, h=28, w=28, c=1):
     """
     images = []
     for i,coordinates in enumerate(data):
-        image = np.zeros((c, h, w))
+        image = np.zeros(c*h*w)
+        
         # Set the pixels at the coordinates to 1
         for coord in coordinates:
             coord = coord.astype(int)
-            if(coord[0] < h and coord[1] < w and (coord >= 0).all()):
-                image[:, coord[0], coord[1]] = 1
+            if (coord >= 0).all():  # Ignore padding
+                image[coord] = 1
+
+        image = np.reshape(image,(c, h, w))
+        # image = np.zeros(c*h*w)
+        # # Set the pixels at the coordinates to 1
+        # for coord in coordinates:
+        #     coord = coord.astype(int)
+        #     if(coord[0] < h and coord[1] < w and (coord >= 0).all()):
+        #         image[:, coord[0], coord[1]] = 1
         images.append(torch.from_numpy(image))
     return images

@@ -56,12 +56,19 @@ def gen_dataset(datadir, dset_name, **kwargs):
         valset = CustomDataset(torch.from_numpy(x_val))
         testset = CustomDataset(torch.from_numpy(x_tst))
 
-    elif dset_name in ["set-mnist-50"]:
+    elif dset_name in ["set-mnist-50","set-mnist-100"]:
+        def shufflerow(tensor, axis):
+            row_perm = torch.rand(tensor.shape[:axis+1]).argsort(axis)  # get permutation indices
+            for _ in range(tensor.ndim-axis-1): row_perm.unsqueeze_(-1)
+            row_perm = row_perm.repeat(*[1 for _ in range(axis+1)], *(tensor.shape[axis+1:]))  # reformat this for the gather operation
+            return tensor.gather(axis, row_perm)
+        
         fullset = np.load(os.path.join(datadir, 'train_sets.npy'))
-        x_trn, x_val = fullset[:-10000], fullset[-10000:]
+        x_trn = fullset
         x_tst = np.load(os.path.join(datadir, 'test_sets.npy'))
         fullset = CustomDataset(torch.from_numpy(x_trn))
-        valset = CustomDataset(torch.from_numpy(x_val))
+        valset = CustomDataset(shufflerow(torch.from_numpy(x_trn), axis=1))
         testset = CustomDataset(torch.from_numpy(x_tst))
+        print(fullset.data.shape,valset.data.shape,testset.data.shape)
         
         return fullset, valset, testset
