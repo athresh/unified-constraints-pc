@@ -94,7 +94,7 @@ class Train:
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size
-        tst_batch_size = 1000
+        tst_batch_size = self.cfg.dataloader.batch_size
 
 
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=trn_batch_size,
@@ -135,7 +135,7 @@ class Train:
         val_losses = []
         tst_losses = []
         lmbda = self.cfg.constraint_args.lmbda
-        for epoch in range(self.cfg.train_args.num_epochs):
+        for epoch in range(self.cfg.train_args.num_epochs+1):
             model.train()
             start_time = time.time()
             total_violation = 0

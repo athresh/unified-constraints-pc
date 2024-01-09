@@ -45,7 +45,7 @@ def get_sim_dataloader(dataset, config_data, **kwargs):
             row_perm = row_perm.repeat(*[1 for _ in range(axis+1)], *(tensor.shape[axis+1:]))  # reformat this for the gather operation
             return tensor.gather(axis, row_perm)
         
-        sim_dataset_1 = dataset.repeat(5, 1, 1)
+        sim_dataset_1 = dataset.repeat(10, 1, 1)
         sim_dataset_2 = shufflerow(sim_dataset_1.clone(), axis=1)
         
         
