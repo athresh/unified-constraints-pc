@@ -35,10 +35,26 @@ The digits to include can also be specified in the above python file. Below is a
 
 #### `set-mnist-100`
 
-| ![without-generalization-constraint](./assets/einet-set-mnist-100-unconstrained-ep500.png) | 
-|:--:| 
-| *Einsum Network trained **without generalization constraint** at the end of 500 epochs* |
+Results on Einsum Networks with Categorical leaf variables and `num_sums=10`, `num_input_distributions=10`, `num_repetition=5`, `depth=6`
 
-| ![with-generalization-constraint](./assets/einet-set-mnist-100-constrained-ep500.png) | 
-|:--:| 
-| *Einsum Network trained **with generalization constraint** at the end of 500 epochs* |
+The generalization constraint helps capture the set symmetry of permutation invariance and achieve higher test log likelihoods and sample quality.
+
+
+<table>
+  <tr>
+    <td> 
+    <img src="./assets/einet-set-mnist-100-unconstrained-ep500.png"></img>
+    </td>
+    <td>
+     <img src="./assets/einet-set-mnist-100-constrained-ep500.png"></img>
+     </td>
+  </tr>
+  <tr>
+   <td> 
+    Einsum Network trained <b>without generalization constraint</b> at the end of 500 epochs.
+    </td>
+    <td>
+    Einsum Network trained <b>with generalization constraint</b> at the end of 500 epochs.
+    </td>
+  </tr>
+</table>
