@@ -58,3 +58,23 @@ The generalization constraint helps capture the set symmetry of permutation inva
     </td>
   </tr>
 </table>
+
+
+<table>
+  <tr>
+    <td> 
+    <img src="./assets/ratspn-set-mnist-100-unconstrained-ep500.png"></img>
+    </td>
+    <td>
+     <img src="./assets/ratspn-set-mnist-100-constrained-ep500.png"></img>
+     </td>
+  </tr>
+  <tr>
+   <td> 
+   RatSPN trained <b>without generalization constraint</b> at the end of 500 epochs.
+    </td>
+    <td>
+    RatSPN trained <b>with generalization constraint</b> at the end of 500 epochs.
+    </td>
+  </tr>
+</table>
