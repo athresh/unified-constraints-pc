@@ -6,7 +6,8 @@ import os
 import torchvision
 
 num_elements = 100
-digits = [7,8,9]
+digits = [0,1,2,3,4,5,6,7,8,9]
+
 # Load the binarized MNIST dataset
 transform = transforms.Compose([transforms.ToTensor()])
 train_data = datasets.MNIST(root='../data', train=True, download=True, transform=transform)
@@ -22,11 +23,11 @@ def convert_images_to_sets(data_loader, num_elements=50):
     for image, target in data_loader:
         if target.item() not in digits:
             continue
-        # Find the 2D coordinates of non-zero pixels
+        # Find the coordinates of non-zero pixels
         image = image.squeeze().view(-1).round()
         non_zero_pixels = torch.nonzero(image.squeeze(), as_tuple=False)
 
-        # If there are less than num_elements non-zero pixels, we pad the set with [-1, -1]
+        # If there are less than num_elements non-zero pixels, skip the image
         if non_zero_pixels.shape[0] < num_elements:
             continue
             # padding = torch.full((num_elements - non_zero_pixels.shape[0], 2), -1)

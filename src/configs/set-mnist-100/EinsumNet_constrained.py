@@ -26,8 +26,8 @@ config = dict(
     ),
     model=dict(
         name=model,
-        num_sums=10,
-        num_input_distributions=10,
+        num_sums=20,
+        num_input_distributions=20,
         depth=6,
         num_repetition=5,
         num_vars=num_elements,
@@ -48,7 +48,7 @@ config = dict(
 )
 
 config["train_args"] = dict(
-        num_epochs=500,
+        num_epochs=5,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=1,
