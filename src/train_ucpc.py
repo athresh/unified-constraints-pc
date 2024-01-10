@@ -18,6 +18,8 @@ from packages.pfc.models import EinsumNet, LinearSplineEinsumFlow
 from packages.pfc.config import EinetConfig
 from packages.pfc.components.spn.Graph import random_binary_trees, poon_domingos_structure
 import tqdm 
+import pickle
+import sys 
 
 class Train:
     def __init__(self, config_data):
@@ -137,6 +139,7 @@ class Train:
         trn_losses = []
         val_losses = []
         tst_losses = []
+        epochs = []
         lmbda = self.cfg.constraint_args.lmbda
         for epoch in range(self.cfg.train_args.num_epochs+1):
             model.train()
@@ -176,6 +179,7 @@ class Train:
                 trn_loss = 0
                 val_loss = 0
                 tst_loss = 0
+                epochs += [epoch]
                 model.eval()
                 if ("trn_loss" in print_args):
                     trn_loss = self.model_eval_loss(trainloader, model)
@@ -192,6 +196,11 @@ class Train:
                 if self.cfg.constraint_args.constrained:
                     self.logger.add_scalar('Violation', total_violation, epoch)
                 print("Epoch: {} | Train loss: {:.4f} | Val loss: {:.4f} | Test loss: {:.4f} | Violation: {:.4f} | Time: {:.4f}".format(epoch, trn_loss, val_loss, tst_loss, total_violation, epoch_time))
+                sys.stdout.flush()
+                
+                # Save all losses as dict 
+                pickle.dump({'trn_loss': trn_losses, 'val_loss': val_losses, 'tst_loss': tst_losses, 'epochs':epochs}, open(self.cfg.train_args.results_dir+'/losses.pkl', 'wb'))
+                 
             if self.cfg.train_args.visualize:
                 if (epoch) % self.cfg.train_args.visualize_every == 0:
                     p = Path(self.cfg.train_args.plots_dir)

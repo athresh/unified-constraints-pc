@@ -21,13 +21,13 @@ config = dict(
     ),
     dataloader=dict(
         shuffle=True,
-        batch_size=32,
+        batch_size=200,
         pin_memory=True,
     ),
     model=dict(
         name=model,
-        num_sums=20,
-        num_input_distributions=20,
+        num_sums=10,
+        num_input_distributions=10,
         depth=6,
         num_repetition=10,
         num_vars=num_elements,
@@ -48,7 +48,7 @@ config = dict(
 )
 
 config["train_args"] = dict(
-        num_epochs=500,
+        num_epochs=200,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=1,
