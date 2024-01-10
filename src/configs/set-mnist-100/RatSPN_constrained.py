@@ -22,7 +22,7 @@ config = dict(
     ),
     dataloader=dict(
         shuffle=True,
-        batch_size=200,
+        batch_size=100,
         pin_memory=True,
     ),
     model=dict(
