@@ -16,6 +16,7 @@ if(os.path.exists(experiment_dir)):
 experiment_dir = os.path.join(experiment_dir, f'trial={trial}')  
 config = dict(
     experiment_dir=experiment_dir,
+    seed=trial,
     dataset=dict(
         name=f"set-mnist-{num_elements}",
         datadir=f"../data/MNIST/num_elements={num_elements}/",
