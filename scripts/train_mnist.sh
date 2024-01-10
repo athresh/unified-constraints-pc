@@ -5,6 +5,8 @@ set -e
 dataset="set-mnist-100"
 models=("EinsumNet" "RatSPN")
 
+rm -r ../experiments/$dataset
+
 # Set the number of trials
 trials=3
 

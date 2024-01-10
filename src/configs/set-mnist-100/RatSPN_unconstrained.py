@@ -22,15 +22,15 @@ config = dict(
     ),
     dataloader=dict(
         shuffle=True,
-        batch_size=100,
+        batch_size=32,
         pin_memory=True,
     ),
     model=dict(
         name=model,
         S=20,
         I=20,
-        D=4,
-        R=5,
+        D=6,
+        R=10,
         F=num_elements,
         C=1,
         # name="RatSPN",
@@ -54,7 +54,7 @@ config = dict(
 )
 
 config["train_args"] = dict(
-        num_epochs=5,
+        num_epochs=500,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=1,
