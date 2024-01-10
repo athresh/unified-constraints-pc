@@ -91,15 +91,13 @@ def set_to_image(data, h=28, w=28, c=1):
         # Set the pixels at the coordinates to 1
         for coord in coordinates:
             coord = coord.astype(int)
+            
+            if(coord >= h*w*c):
+                continue
+            
             if (coord >= 0).all():  # Ignore padding
                 image[coord] = 1
 
         image = np.reshape(image,(c, h, w))
-        # image = np.zeros(c*h*w)
-        # # Set the pixels at the coordinates to 1
-        # for coord in coordinates:
-        #     coord = coord.astype(int)
-        #     if(coord[0] < h and coord[1] < w and (coord >= 0).all()):
-        #         image[:, coord[0], coord[1]] = 1
         images.append(torch.from_numpy(image))
     return images

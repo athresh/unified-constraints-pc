@@ -41,7 +41,7 @@ def csv_file_load(path, dim, save_data=False):
     X_data = np.array(data, dtype=np.float32)
     return X_data
 
-def gen_dataset(datadir, dset_name, **kwargs):
+def gen_dataset(datadir, dset_name, normalize=False, **kwargs):
     if dset_name in ["helix", "helix_short", "helix_short_appended", "circle"]:
         np.random.seed(42)
         trn_file = os.path.join(datadir, dset_name + '.trn')
@@ -66,6 +66,9 @@ def gen_dataset(datadir, dset_name, **kwargs):
         fullset = np.load(os.path.join(datadir, 'train_sets.npy'))
         x_trn = fullset
         x_tst = np.load(os.path.join(datadir, 'test_sets.npy'))
+        if(normalize):
+            fullset = (fullset - fullset.min(axis=1, keepdims=True)) / (fullset.max(axis=1, keepdims=True) - fullset.min(axis=1, keepdims=True))
+            x_tst   = (x_tst - x_tst.min(axis=1, keepdims=True)) / (x_tst.max(axis=1, keepdims=True) - x_tst.min(axis=1, keepdims=True))
         fullset = CustomDataset(torch.from_numpy(x_trn))
         valset = CustomDataset(shufflerow(torch.from_numpy(x_trn), axis=1))
         testset = CustomDataset(torch.from_numpy(x_tst))

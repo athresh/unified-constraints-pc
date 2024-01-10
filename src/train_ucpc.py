@@ -89,8 +89,11 @@ class Train:
         General training loop
         """
         logger = self.logger
-        trainset, validset, testset = gen_dataset(self.cfg.dataset.datadir,
-                                                self.cfg.dataset.name)
+        normalize = self.cfg.dataset.normalize if hasattr(self.cfg.dataset, 'normalize') else False 
+        trainset, validset, testset = gen_dataset(
+                            self.cfg.dataset.datadir,
+                            self.cfg.dataset.name,
+                            normalize=normalize)
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size
