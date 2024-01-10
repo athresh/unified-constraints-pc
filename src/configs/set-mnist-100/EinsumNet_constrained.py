@@ -12,9 +12,11 @@ experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constr
 
 if(os.path.exists(experiment_dir)):
     trial = len(os.listdir(experiment_dir))+1
+    
 experiment_dir = os.path.join(experiment_dir, f'trial={trial}')  
 config = dict(
     experiment_dir=experiment_dir,
+    seed=trial
     dataset=dict(
         name=f"set-mnist-{num_elements}",
         datadir=f"../data/MNIST/num_elements={num_elements}/",

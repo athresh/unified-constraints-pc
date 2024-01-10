@@ -19,6 +19,7 @@ from packages.pfc.config import EinetConfig
 from packages.pfc.components.spn.Graph import random_binary_trees, poon_domingos_structure
 import tqdm 
 import pickle
+import random
 import sys 
 
 class Train:
@@ -221,5 +222,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config_file = args.config_file
     config_data = load_config_data(args.config_file)
+    
+    random.seed(config_data.seed)
+    np.random.seed(config_data.seed)
+    torch.manual_seed(config_data.seed)
+
+
     model = Train(config_data)
     model.train()

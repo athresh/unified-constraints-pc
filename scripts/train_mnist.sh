@@ -30,11 +30,11 @@ set -e
 for ((trial=1; trial<=$trials; trial++)); do
     echo "Running trial $trial for model $model"
 
-    # CUDA_VISIBLE_DEVICES=0 python train_ucpc.py --config_file=configs/$dataset/"RatSPN_unconstrained.py" > ../console/$dataset/"RatSPN_unconstrained.txt" &
-    # CUDA_VISIBLE_DEVICES=1 python train_ucpc.py --config_file=configs/$dataset/"EinsumNet_unconstrained.py" > ../console/$dataset/"EinsumNet_unconstrained.txt" 
+    CUDA_VISIBLE_DEVICES=0 python train_ucpc.py --config_file=configs/$dataset/"RatSPN_unconstrained.py" > ../console/$dataset/"RatSPN_unconstrained.txt" &
+    CUDA_VISIBLE_DEVICES=1 python train_ucpc.py --config_file=configs/$dataset/"EinsumNet_unconstrained.py" > ../console/$dataset/"EinsumNet_unconstrained.txt" 
 
-    CUDA_VISIBLE_DEVICES=0 python train_ucpc.py --config_file=configs/$dataset/"RatSPN_constrained.py" > ../console/$dataset/"RatSPN_constrained.txt" &
-    CUDA_VISIBLE_DEVICES=1 python train_ucpc.py --config_file=configs/$dataset/"EinsumNet_constrained.py" > ../console/$dataset/"EinsumNet_constrained.txt" 
+    # CUDA_VISIBLE_DEVICES=0 python train_ucpc.py --config_file=configs/$dataset/"RatSPN_constrained.py" > ../console/$dataset/"RatSPN_constrained.txt" &
+    # CUDA_VISIBLE_DEVICES=1 python train_ucpc.py --config_file=configs/$dataset/"EinsumNet_constrained.py" > ../console/$dataset/"EinsumNet_constrained.txt" 
     
     echo "Trial $trial for model $model completed"
     echo
