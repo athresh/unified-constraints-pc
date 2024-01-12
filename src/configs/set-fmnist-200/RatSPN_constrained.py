@@ -1,25 +1,25 @@
 import torch
 import os
  
-trial = 3
-num_elements=100
-model = 'EinsumNet'
-leaf_type = 'CategoricalArray'
-leaf_config=dict(K=784)
+trial=1
+num_elements=200
+model = 'RatSPN'
+leaf_type = 'Categorical'
+leaf_config=dict(num_bins=784)
 constrained = True
-dataset_name = f"set-mnist-{num_elements}"
-experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
+dataset_name = f"set-fmnist-{num_elements}"
 
+experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
 if(os.path.exists(experiment_dir)):
     trial = len(os.listdir(experiment_dir))+1
-    
 experiment_dir = os.path.join(experiment_dir, f'trial={trial}')  
+
 config = dict(
     experiment_dir=experiment_dir,
     seed=trial,
     dataset=dict(
-        name=f"set-mnist-{num_elements}",
-        datadir=f"../data/MNIST/num_elements={num_elements}/",
+        name=f"set-fmnist-{num_elements}",
+        datadir=f"../data/FashionMNIST/num_elements={num_elements}/",
     ),
     dataloader=dict(
         shuffle=True,
@@ -28,18 +28,23 @@ config = dict(
     ),
     model=dict(
         name=model,
-        num_sums=10,
-        num_input_distributions=10,
-        depth=6,
-        num_repetition=10,
-        num_vars=num_elements,
-        num_dims=1,
-        num_classes=1,
-        graph_type='random_binary_trees',
+        S=10,
+        I=10,
+        D=6,
+        R=10,
+        F=num_elements,
+        C=1,
+        # name="RatSPN",
+        # num_sums=20,
+        # num_input_distributions=20,
+        # num_repetition=20,
+        # depth=5,
+        # num_vars=50,
+        # num_dims=2,
+        # num_classes=1,
+        # graph_type='random_binary_trees',
         leaf_type=leaf_type,
         leaf_config=leaf_config
-        # leaf_type='NormalArray',
-        # leaf_config=dict()
     ),
     constraint_args=dict(
         constrained=constrained,
@@ -63,3 +68,4 @@ config["train_args"] = dict(
         visualize=True,
         save_model_dir=f'{experiment_dir}/ckpt'
 )
+

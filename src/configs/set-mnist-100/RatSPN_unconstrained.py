@@ -10,8 +10,8 @@ constrained = False
 dataset_name = f"set-mnist-{num_elements}"
 
 experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
-if(os.path.exists(experiment_dir)):
-    trial = len(os.listdir(experiment_dir))+1
+# if(os.path.exists(experiment_dir)):
+#     trial = len(os.listdir(experiment_dir))+1
 experiment_dir = os.path.join(experiment_dir, f'trial={trial}')  
 
 config = dict(

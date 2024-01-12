@@ -2,12 +2,12 @@ import torch
 import os
  
 trial = 3
-num_elements=100
+num_elements=200
 model = 'EinsumNet'
 leaf_type = 'CategoricalArray'
 leaf_config=dict(K=784)
-constrained = True
-dataset_name = f"set-mnist-{num_elements}"
+constrained = False
+dataset_name = f"set-fmnist-{num_elements}"
 experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
 
 if(os.path.exists(experiment_dir)):
@@ -18,8 +18,8 @@ config = dict(
     experiment_dir=experiment_dir,
     seed=trial,
     dataset=dict(
-        name=f"set-mnist-{num_elements}",
-        datadir=f"../data/MNIST/num_elements={num_elements}/",
+        name=f"set-fmnist-{num_elements}",
+        datadir=f"../data/FashionMNIST/num_elements={num_elements}/",
     ),
     dataloader=dict(
         shuffle=True,

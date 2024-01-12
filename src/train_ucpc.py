@@ -206,7 +206,7 @@ class Train:
                 if (epoch) % self.cfg.train_args.visualize_every == 0:
                     p = Path(self.cfg.train_args.plots_dir)
                     p.mkdir(parents=True, exist_ok=True)
-                    if(self.cfg.dataset.name in ["set-mnist-50","set-mnist-100"]):
+                    if(self.cfg.dataset.name in ["set-mnist-50","set-mnist-100","set-fmnist-200"]):
                         visualize_set_image(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
                     elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_short_appended", "circle"]):
                         visualize_3d(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)

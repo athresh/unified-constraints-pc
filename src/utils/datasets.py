@@ -56,7 +56,7 @@ def gen_dataset(datadir, dset_name, normalize=False, **kwargs):
         valset = CustomDataset(torch.from_numpy(x_val))
         testset = CustomDataset(torch.from_numpy(x_tst))
 
-    elif dset_name in ["set-mnist-50","set-mnist-100"]:
+    elif dset_name in ["set-mnist-50","set-mnist-100", "set-fmnist-200"]:
         def shufflerow(tensor, axis):
             row_perm = torch.rand(tensor.shape[:axis+1]).argsort(axis)  # get permutation indices
             for _ in range(tensor.ndim-axis-1): row_perm.unsqueeze_(-1)

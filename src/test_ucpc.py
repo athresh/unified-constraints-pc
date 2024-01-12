@@ -7,10 +7,11 @@ from packages.spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpn
 from packages.spn.algorithms.layerwise.distributions import *
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data
-from utils.utils import visualize_3d, visualize_set_image
+from utils.utils import visualize_3d, visualize_set_image, set_to_image
 from utils.selectors import get_sim_dataloader
 from constraint.constraints import GeneralizationConstraint
 import time
+import torchvision
 import argparse
 from pathlib import Path
 import os
@@ -25,7 +26,6 @@ class Test:
         config_data['version'] = version
         self.cfg = config_data
         log_comment = "_{}_{}".format(self.cfg.dataset.name, self.cfg.model.name)
-        self.logger = SummaryWriter(comment=log_comment) if not hasattr(config_data, 'experiment_dir') else SummaryWriter(os.path.join(config_data['experiment_dir']),'results')
 
     def model_eval_loss(self, data_loader, model, lmbda=0):
         loss = 0
@@ -75,7 +75,7 @@ class Test:
         model = RatSpn(config)
 
         model = model.to(device)
-        model.test()
+        # model.test()
 
         print("Using device:", device)
         return model
@@ -85,13 +85,12 @@ class Test:
         """
         General testing loop
         """
-        logger = self.logger
         trainset, validset, testset = gen_dataset(self.cfg.dataset.datadir,
                                                 self.cfg.dataset.name)
 
         trn_batch_size = self.cfg.dataloader.batch_size
         val_batch_size = self.cfg.dataloader.batch_size
-        tst_batch_size = 1000
+        tst_batch_size = self.cfg.dataloader.batch_size
 
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=trn_batch_size,
                                                   shuffle=False, pin_memory=True)
@@ -128,12 +127,20 @@ class Test:
         model.load_state_dict(torch.load(self.cfg.train_args.save_model_dir+'/model.mdl'))
         model.eval()
         
-        trn_loss = self.model_eval_loss(trainloader, model)
-        val_loss = self.model_eval_loss(valloader, model)
-        tst_loss = self.model_eval_loss(tstloader, model)
-        print("Testing | Train loss: {:.4f} | Val loss: {:.4f} | Test loss: {:.4f}".format( trn_loss, val_loss, tst_loss))
+        # trn_loss = self.model_eval_loss(trainloader, model)
+        # val_loss = self.model_eval_loss(valloader, model)
+        # tst_loss = self.model_eval_loss(tstloader, model)
+        # print("Testing | Train loss: {:.4f} | Val loss: {:.4f} | Test loss: {:.4f}".format( trn_loss, val_loss, tst_loss))
     
         if(self.cfg.dataset.name in ["set-mnist-50","set-mnist-100"]):
+            samples = torch.cat([model.sample(64).detach() for _ in range(10)], dim=0)
+            ll = torch.cat([model(samples[64*i:64*(i+1)]).detach() for i in range(10)], dim=0)
+            top_ll, top_idx = torch.topk(ll.squeeze(), 64)
+            top_samples = samples[top_idx].cpu().numpy()
+            images = set_to_image(top_samples, h=28, w=28) 
+            grid = torchvision.utils.make_grid(images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+            torchvision.utils.save_image(grid, os.path.join(self.cfg.train_args.plots_dir,"best_samples.png"))
+            
             visualize_set_image(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch="test")
         elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_short_appended", "circle"]):
             visualize_3d(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch="test")
@@ -141,6 +148,7 @@ class Test:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_file', type=str)
+    parser.add_argument('--trial', type=int)
     args = parser.parse_args()
     config_file = args.config_file
     config_data = load_config_data(args.config_file)

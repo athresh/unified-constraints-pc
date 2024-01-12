@@ -2,9 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+src/gen_plots.py
 experiments/
 # C extensions
+src/test_ucpc.py
 *.so
 console/
 # Distribution / packaging

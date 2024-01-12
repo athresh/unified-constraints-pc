@@ -2,10 +2,10 @@
 
 
 # Set the dataset and models
-dataset="set-mnist-100"
+dataset="set-fmnist-200"
 models=("EinsumNet" "RatSPN")
 
-# rm -r ../experiments/$dataset
+rm -r ../experiments/$dataset
 mkdir ../console/$dataset
 # Set the number of trials
 trials=1

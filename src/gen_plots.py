@@ -9,13 +9,13 @@ sns.set_style("whitegrid")
 plt.rcParams["axes.edgecolor"] = "0.15"
 plt.rcParams["axes.linewidth"]  = 1.50
     
-dataset = "set-mnist-even"
+dataset = "set-mnist-odd"
 models  = ("EinsumNet/leaf=CategoricalArray","RatSPN/leaf=Categorical")
 plot_data = {}
 for model in models:
     exp_dir = f"../experiments/{dataset}/{model}"
     plot_data[model] = {}
-    for constrained in [False]:
+    for constrained in [True, False]:
         dir = f"{exp_dir}/constrained={constrained}"
         plot_data[model][f"constrained={constrained}"] = {}
         for trial in os.listdir(dir):
@@ -27,30 +27,36 @@ for model in models:
                 history = pickle.load(f)
                 for key in history:
                     plot_data[model][f"constrained={constrained}"][key] = [np.array(history[key])] if key not in plot_data[model][f"constrained={constrained}"] else [np.array(history[key])] + plot_data[model][f"constrained={constrained}"][key]
-                    print(f"{model:50s}", f"constrained={constrained} ", trial,plot_data[model][f"constrained={constrained}"][key][0].shape)
+                print(f"{model:35s}", f"constrained={str(constrained):6s} ", trial, f"{history['tst_loss'][-1]:.3f} {len(history['tst_loss'])}")
         for key in history:
             plot_data[model][f"constrained={constrained}"][key] = np.vstack(plot_data[model][f"constrained={constrained}"][key])
 
+print("\n-->Test Results")
 for model in models:
     exp_dir = f"../experiments/{dataset}/{model}"
-    for constrained in [False]:
+    plt.figure(figsize=(5,4))
+    for constrained in [True, False]:
         dir = f"{exp_dir}/constrained={constrained}"
-        plt.figure(figsize=(5,5))
         x_axis   = plot_data[model][f"constrained={constrained}"]['epochs'][0]
         train_ll = plot_data[model][f"constrained={constrained}"]['trn_loss']
         val_ll   = plot_data[model][f"constrained={constrained}"]['val_loss']
         test_ll  = plot_data[model][f"constrained={constrained}"]['tst_loss']
-        print(f"x-axis: {x_axis.shape} \t train_ll: {train_ll.shape} \t val_ll: {val_ll.shape} \t test_ll: {test_ll.shape}")
         color = 'r' if constrained else 'b'
-        plt.plot(x_axis, train_ll.mean(axis=0), label="Train", ls='--', color=color, lw=2)
-        plt.fill_between(x_axis, train_ll.mean(axis=0)-train_ll.std(axis=0),train_ll.mean(axis=0)+train_ll.std(axis=0),color=color, alpha=0.2)
+        label = model.split('/')[0] 
+        label = f"{label}" if not constrained else f"{label} + GC"
+        mean, std = train_ll.mean(axis=0), train_ll.std(axis=0)
+        plt.plot(x_axis, mean, label=f"Train: {label}", ls='--', color=color, lw=2)
+        plt.fill_between(x_axis, mean-std,mean+std,color=color, alpha=0.15)
         
-        plt.plot(x_axis, val_ll.mean(axis=0), label="Valid", ls='-', color=color, lw=2)
-        plt.fill_between(x_axis, val_ll.mean(axis=0)-val_ll.std(axis=0),val_ll.mean(axis=0)+val_ll.std(axis=0),color=color, alpha=0.2)
+        mean, std = test_ll.mean(axis=0), test_ll.std(axis=0)/np.sqrt(test_ll.shape[0])
+        plt.plot(x_axis, mean, label=f"Valid: {label}", ls='-', color=color, lw=2)
+        plt.fill_between(x_axis, mean-std, mean+std,color=color, alpha=0.15)
         
-        plt.legend(fontsize=12)
-        plt.xticks(fontsize=12)
-        plt.yticks(fontsize=12)
-        plt.xlabel("Epochs", fontweight='bold', fontsize=14)
-        plt.ylabel("Log Likelihood", fontweight='bold', fontsize=14)
-        plt.savefig(f"{dir}/learning_curve.png", bbox_inches='tight')
+        print(f"{dataset:20s} {model:32s}", f"constrained={str(constrained):6s}: {test_ll.mean(axis=0)[-1]:.3f} +- {test_ll.std(axis=0)[-1]/np.sqrt(test_ll.shape[0]):.3f}", )
+    plt.legend(fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.xlabel("Epochs", fontweight='bold', fontsize=15)
+    plt.ylabel("Log Likelihood", fontweight='bold', fontsize=15)
+    plt.savefig(f"{exp_dir}/{dataset}_{model.split('/')[0]}_learning_curve.png", bbox_inches='tight')
+    

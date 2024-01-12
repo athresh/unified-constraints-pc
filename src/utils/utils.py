@@ -39,6 +39,16 @@ def visualize_set_image(model, dataset, save_dir, epoch=0, h=28, w=28):
     gen_grid = torchvision.utils.make_grid(gen_images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
     os.makedirs(os.path.join(save_dir, "generated"), exist_ok=True)
     torchvision.utils.save_image(gen_grid, os.path.join(save_dir, "generated", f"{epoch}.png"))
+    
+    samples = torch.cat([model.sample(64).detach() for _ in range(10)], dim=0)
+    ll = torch.cat([model(samples[64*i:64*(i+1)]).detach() for i in range(10)], dim=0)
+    top_ll, top_idx = torch.topk(ll.squeeze(), 64)
+    top_samples = samples[top_idx].cpu().numpy()
+    images = set_to_image(top_samples, h=28, w=28) 
+    grid = torchvision.utils.make_grid(images, nrow=8, padding=2, normalize=False, range=None, scale_each=False, pad_value=0)
+    os.makedirs(os.path.join(save_dir, "best_samples"), exist_ok=True)
+    torchvision.utils.save_image(grid, os.path.join(save_dir,"best_samples",f"{epoch}.png"))
+    
     # plt.figure()
     # plt.imshow(grid.permute(1, 2, 0).detach().cpu().numpy())
     # plt.savefig(os.path.join(save_dir, "generated", f"{epoch}.png"), bbox_inches="tight")
