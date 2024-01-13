@@ -92,7 +92,7 @@ class Train:
         General training loop
         """
         logger = self.logger
-        normalize = self.cfg.dataset.normalize if hasattr(self.cfg.dataset, 'normalize') else False 
+        normalize = self.cfg.dataset.normalize if hasattr(self.cfg.dataset, 'normalize') else False
         trainset, validset, testset = gen_dataset(
                             self.cfg.dataset.datadir,
                             self.cfg.dataset.name,
@@ -208,7 +208,7 @@ class Train:
                     p.mkdir(parents=True, exist_ok=True)
                     if(self.cfg.dataset.name in ["set-mnist-50","set-mnist-100","set-fmnist-200"]):
                         visualize_set_image(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
-                    elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_short_appended", "circle"]):
+                    elif(self.cfg.dataset.name in ["helix", "helix_short", "helix_uneven","helix_short_appended", "circle"]):
                         visualize_3d(model, dataset=trainset,save_dir=self.cfg.train_args.plots_dir, epoch=epoch)
         self.logger.close()
         p = Path(self.cfg.train_args.save_model_dir)

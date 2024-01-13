@@ -7,7 +7,7 @@ model = 'RatSPN'
 leaf_type = 'Normal'
 leaf_config= None
 constrained = False
-dataset_name = "helix_short"
+dataset_name = "helix_uneven"
 
 experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
 if(os.path.exists(experiment_dir)):

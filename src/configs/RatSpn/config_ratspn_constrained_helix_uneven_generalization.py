@@ -6,8 +6,8 @@ num_elements=3
 model = 'RatSPN'
 leaf_type = 'Normal'
 leaf_config= None
-constrained = False
-dataset_name = "helix_short"
+constrained = True
+dataset_name = "helix_uneven"
 
 experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
 if(os.path.exists(experiment_dir)):
@@ -41,7 +41,7 @@ config = dict(
         constrained=constrained,
         type="generalization",
         atol=1e-1,
-        lmbda=1,
+        lmbda=0,
         sim_data_size=100,
     ),
     train_args=dict(

@@ -42,8 +42,7 @@ def csv_file_load(path, dim, save_data=False):
     return X_data
 
 def gen_dataset(datadir, dset_name, normalize=False, **kwargs):
-    if dset_name in ["helix", "helix_short", "helix_short_appended", "circle"]:
-        np.random.seed(42)
+    if dset_name in ["helix", "helix_short", "helix_uneven", "helix_short_appended", "circle"]:
         trn_file = os.path.join(datadir, dset_name + '.trn')
         val_file = os.path.join(datadir, dset_name + '.val')
         tst_file = os.path.join(datadir, dset_name + '.tst')
@@ -55,6 +54,8 @@ def gen_dataset(datadir, dset_name, normalize=False, **kwargs):
         fullset = CustomDataset(torch.from_numpy(x_trn))
         valset = CustomDataset(torch.from_numpy(x_val))
         testset = CustomDataset(torch.from_numpy(x_tst))
+
+        return fullset, valset, testset
 
     elif dset_name in ["set-mnist-50","set-mnist-100", "set-fmnist-200"]:
         def shufflerow(tensor, axis):
