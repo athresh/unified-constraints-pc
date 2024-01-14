@@ -130,7 +130,7 @@ def make_helix_short(num_data=10000, num_helices_train=1, num_helices_test=2, c=
 
         plot3d(data_tst, ax3, 0.25, ymin, ymax, xmin, xmax, zmin, zmax)
         ax3.set_title("Test", fontsize=12, fontweight='bold')
-        # plt.show()
+        plt.show()
     return data_trn, data_tst
 
 def make_helix_uneven(num_data=10000, num_helices_train=1, num_helices_test=2, c=1, r=1, sd=0.1, test_size=0.5, save_data=False, visualize=True):
@@ -180,7 +180,7 @@ def make_helix_uneven(num_data=10000, num_helices_train=1, num_helices_test=2, c
         plt.show()
     return data_trn, data_tst
 
-def make_helix_short_appended(num_data=10000, num_helices_train=1, num_helices_test=2, c=1, r=1, sd=0.1, test_size=0.5, save_data=False):
+def make_helix_short_appended(num_data=10000, num_helices_train=1, num_helices_test=2, c=1, r=1, sd=0.1, test_size=0.5, save_data=False, visualize=False):
     x = np.linspace(0, 2 * num_helices_train * c * np.pi, num_data)
     y = r * np.sin(x)
     z = r * np.cos(x)
@@ -209,7 +209,22 @@ def make_helix_short_appended(num_data=10000, num_helices_train=1, num_helices_t
         np.savetxt(SAVE_DIR + '/helix_short_appended' + '.trn', data_trn)
         np.savetxt(SAVE_DIR + '/helix_short_appended' + '.val', data_val)
         np.savetxt(SAVE_DIR + '/helix_short_appended' + '.tst', data_tst)
+    if visualize:
+        fig = plt.figure(figsize=(8, 6))
+        ax1 = fig.add_subplot(131, projection='3d')
+        ax2 = fig.add_subplot(132, projection='3d')
+        ax3 = fig.add_subplot(133, projection='3d')
+        (xmax, xmin), (ymax, ymin), (zmax, zmin) = (20., -1.), (1.5, -1.5), (1.5, -1.5)
+        plot3d(data_trn, ax1, 0.25, ymin, ymax, xmin, xmax, zmin, zmax)
+        ax1.set_title("Train", fontsize=12, fontweight='bold')
+
+        plot3d(data_val, ax2, 0.25, ymin, ymax, xmin, xmax, zmin, zmax)
+        ax2.set_title("Val", fontsize=12, fontweight='bold')
+
+        plot3d(data_tst, ax3, 0.25, ymin, ymax, xmin, xmax, zmin, zmax)
+        ax3.set_title("Test", fontsize=12, fontweight='bold')
+        plt.show()
     return data_trn, data_tst
 
 
-make_helix_uneven(save_data=True, visualize=True)
+make_helix_short_appended(save_data=False, visualize=True)
