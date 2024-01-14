@@ -4,6 +4,7 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from torch import optim
 from packages.spn.experiments.RandomSPNs_layerwise.rat_spn import RatSpn, RatSpnConfig
+from packages.spn.experiments.RandomSPNs_layerwise.distributions import RatNormal
 from packages.spn.algorithms.layerwise.distributions import *
 from utils.datasets import gen_dataset
 from utils.config_utils import load_config_data

@@ -4,7 +4,7 @@ import os
 trial=1
 num_elements=3
 model = 'RatSPN'
-leaf_type = 'Normal'
+leaf_type = 'RatNormal'
 leaf_config= None
 constrained = False
 dataset_name = "helix"
@@ -55,7 +55,7 @@ config = dict(
         print_args=["trn_loss", "val_loss", "val_acc", "tst_loss", "tst_acc", "time"],
         return_args=[],
         plots_dir=f'{experiment_dir}/plots',
-        visualize=False,
+        visualize=True,
         save_model_dir=f'{experiment_dir}/ckpt'
         )
 )
