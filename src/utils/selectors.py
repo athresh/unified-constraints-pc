@@ -9,7 +9,7 @@ def get_sim_dataloader(dataset, config_data, **kwargs):
         if 'sim_data_size' in kwargs.keys():
             sim_data_size = kwargs['sim_data_size']
         else:
-            sim_data_size = 1000
+            sim_data_size = 100
         x1 = np.linspace(0, 2 * np.pi, sim_data_size)
         y1 = np.sin(x1)
         z1 = np.cos(x1)
@@ -17,7 +17,8 @@ def get_sim_dataloader(dataset, config_data, **kwargs):
         data1 = helix
         sim_dataset_1 = CustomDataset(torch.from_numpy(data1))
 
-        x2 = np.linspace(2 * np.pi, 4 * np.pi, sim_data_size)
+        # x2 = np.linspace(2 * np.pi, 4 * np.pi, sim_data_size)
+        x2 = x1 + 2 * np.pi
         y2 = np.sin(x2)
         z2 = np.cos(x2)
         helix = np.stack([x2, y2, z2]).T
@@ -29,7 +30,7 @@ def get_sim_dataloader(dataset, config_data, **kwargs):
         if 'sim_data_size' in kwargs.keys():
             sim_data_size = kwargs['sim_data_size']
         else:
-            sim_data_size = 1000
+            sim_data_size = 100
         x1 = np.linspace(0, 2 * np.pi, sim_data_size)
         y1 = np.sin(x1)
         z1 = np.cos(x1)

@@ -1,12 +1,27 @@
 import torch
+import os
+
+trial = 1
+model = 'EinsumNet'
+leaf_type = 'NormalArray'
+leaf_config=dict(K=3)
+constrained = True
+dataset_name = "helix_short"
+experiment_dir = f"../experiments/ablation/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
+
+if(os.path.exists(experiment_dir)):
+    trial = len(os.listdir(experiment_dir))+1
+experiment_dir = os.path.join(experiment_dir, f'trial={trial}')
 config = dict(
+    experiment_dir=experiment_dir,
+    seed=trial,
     dataset=dict(
         name="helix",
         datadir="../data/toy_3d",
     ),
     dataloader=dict(
         shuffle=True,
-        batch_size=200,
+        batch_size=100,
         pin_memory=True,
     ),
     model=dict(
@@ -19,13 +34,15 @@ config = dict(
         num_dims=1,
         num_classes=1,
         graph_type='random_binary_trees',
-        leaf_config=dict()
+        leaf_type=leaf_type,
+        leaf_config=leaf_config
     ),
     constraint_args=dict(
-        constrained=False,
+        constrained=constrained,
         type="generalization",
         atol=1e-1,
-        lmbda=1,
+        lmbda=10,
+        sim_data_size=100
     )
 )
 
@@ -36,10 +53,10 @@ config["train_args"] = dict(
         print_every=1,
         visualize_every=10,
         lr=0.01,
-        results_dir='results/',
+        results_dir=f'{experiment_dir}/results',
         print_args=["trn_loss", "val_loss", "val_acc", "tst_loss", "tst_acc", "time"],
         return_args=[],
-        plots_dir=f'../plots/toy_3d/{config["dataset"]["name"]}/{config["model"]["name"]}',
+        plots_dir=f'{experiment_dir}/plots',
         visualize=True,
-        save_model_dir=f'../ckpt/toy_3d/{config["dataset"]["name"]}/{config["model"]["name"]}'
+        save_model_dir=f'{experiment_dir}/ckpt'
 )

@@ -4,7 +4,7 @@ import os
 trial=1
 num_elements=3
 model = 'RatSPN'
-leaf_type = 'Normal'
+leaf_type = 'RatNormal'
 leaf_config= None
 constrained = True
 dataset_name = "helix_short"
@@ -41,11 +41,11 @@ config = dict(
         constrained=constrained,
         type="generalization",
         atol=1e-1,
-        lmbda=0,
+        lmbda=1,
         sim_data_size=100,
     ),
     train_args=dict(
-        num_epochs=100,
+        num_epochs=200,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=5,
@@ -55,7 +55,7 @@ config = dict(
         print_args=["trn_loss", "val_loss", "val_acc", "tst_loss", "tst_acc", "time"],
         return_args=[],
         plots_dir=f'{experiment_dir}/plots',
-        visualize=False,
+        visualize=True,
         save_model_dir=f'{experiment_dir}/ckpt'
         )
 )
