@@ -16,7 +16,7 @@ config = dict(
     experiment_dir=experiment_dir,
     seed=trial,
     dataset=dict(
-        name="helix",
+        name=dataset_name,
         datadir="../data/toy_3d",
     ),
     dataloader=dict(

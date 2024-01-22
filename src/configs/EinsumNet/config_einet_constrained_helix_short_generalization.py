@@ -6,7 +6,7 @@ model = 'EinsumNet'
 leaf_type = 'NormalArray'
 leaf_config=dict(K=3)
 constrained = True
-dataset_name = "helix_short"
+dataset_name = "helix_short_appended"
 experiment_dir = f"../experiments/{dataset_name}/{model}/leaf={leaf_type}/constrained={constrained}"
 
 if(os.path.exists(experiment_dir)):
@@ -16,7 +16,7 @@ config = dict(
     experiment_dir=experiment_dir,
     seed=trial,
     dataset=dict(
-        name="helix",
+        name=dataset_name,
         datadir="../data/toy_3d",
     ),
     dataloader=dict(
@@ -46,7 +46,7 @@ config = dict(
 )
 
 config["train_args"] = dict(
-        num_epochs=500,
+        num_epochs=200,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
         alpha=0.25,
         print_every=1,

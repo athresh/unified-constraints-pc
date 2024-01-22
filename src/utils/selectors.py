@@ -5,7 +5,7 @@ from .datasets import CustomDataset
 def get_sim_dataloader(dataset, config_data, **kwargs):
     cfg = config_data
     mask = None
-    if cfg.dataset.name in ['helix', 'helix_short']:
+    if cfg.dataset.name in ['helix', 'helix_short', 'helix_short_appended']:
         if 'sim_data_size' in kwargs.keys():
             sim_data_size = kwargs['sim_data_size']
         else:
