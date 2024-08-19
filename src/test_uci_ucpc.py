@@ -28,7 +28,7 @@ import numpy as np
 # np.random.seed(trial)
 # torch.manual_seed(trial)
 
-for name in ["breast-cancer", "diabetes", "thyroid", "heart-disease"]:
+for name in ["breast-cancer", "diabetes", "thyroid",  "heart-disease", "numom2b"]: # , , ,
     df, r, target, monotonicities = get_uci_dataset(name)
     names = df.columns.tolist()
     train, test = train_test_split(df, stratify=df[target], test_size=0.5, random_state=0)
@@ -40,9 +40,9 @@ for name in ["breast-cancer", "diabetes", "thyroid", "heart-disease"]:
     ll = []
     for trial in range(3):
         model = torch.load(f"{name}-{trial}-{0}.pt")
-        base.append(log_likelihood(test_loader, model, device="cuda"))
+        base.append(log_likelihood(test_loader, model, device="cpu"))
         
         model = torch.load(f"{name}-{trial}-{10}.pt")
-        ll.append(log_likelihood(test_loader, model, device="cuda"))
+        ll.append(log_likelihood(test_loader, model, device="cpu"))
     
     print (f"{name}, {np.mean(base):.3f} ± {np.std(base):.2f}, {np.mean(ll):.3f} ±{np.std(ll):.2f}")

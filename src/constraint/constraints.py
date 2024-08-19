@@ -78,7 +78,7 @@ class ContextSpecificIndependence(EqualityConstraint):
         self.r = r
         super().__init__()
     
-    def violation(self, model, dataset, config_data, device="cpu", **kwargs):
+    def _violation(self, model, dataset, config_data, device="cpu", **kwargs):
         # P(X | Y, Z = z) = P(X | Z = z) 
         n_features = len(self.r)
         data = torch.zeros((self.r[self.Y], n_features), device=device)
@@ -92,6 +92,14 @@ class ContextSpecificIndependence(EqualityConstraint):
         delta = self.delta(p1, p2)
         violation = self.degree_violation(delta)
         return violation / (self.r[self.X]*self.r[self.Y])
+
+    def violation(self, model, dataset, config_data, device="cpu", **kwargs):
+        total = 0.5*self._violation( model, dataset, config_data, device, **kwargs)
+        self.X, self.Y = self.Y, self.X
+        total += 0.5*self._violation( model, dataset, config_data, device, **kwargs)
+        self.X, self.Y = self.Y, self.X
+        return total
+        
             
 class InequalityConstraint(AbstractConstraint):
     def __init__(self, sign, epsilon):

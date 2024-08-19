@@ -116,24 +116,42 @@ def get_uci_dataset(name: str):
         df = df.astype(int)
         cardinality = [ df[column].max() + 1 for column in df.columns ]
         return df, cardinality, target, monotonicities
+    elif name == "numom2b":
+        df = pd.read_csv(os.path.join(base, "numom2b.csv"))
+        cardinality = [ df[column].max() + 1 for column in df.columns ]
+        
+        target = "GDM"
+        monotonicities = [("BMI", +1), ("METs", -1), ("PRS", +1), ("Hist", +1),	("PCOS", +1), ("HiBP",+1), ("Age", +1)]
+        df = df.astype(int)
+        cardinality = [ df[column].max() + 1 for column in df.columns ]
+        return df, cardinality, target, monotonicities
     
 
 
 def get_cis(bn):
-    return [
+    return list(sorted([
         (list(indep.event1)[0], each, list(indep.event3)[0])
         
         for indep in bn.get_independencies().get_assertions()
         for each in indep.event2
         if len(indep.event3)==1
-    ]
+    ]))
 
 
 def get_bn_dataset(name: str):
-    if name in ( "earthquake", "sachs", "asia"):
+    if name in ("asia", "earthquake", "sachs", "survey"):
         bn = BIFReader(f"{name}.bif").get_model()
-        train = bn.simulate(n_samples=100, seed=0).astype(int)
-        test = bn.simulate(n_samples=100, seed=1).astype(int)
+        train = pd.read_csv(f"{name}-train.csv")
+        test = pd.read_csv(f"{name}-test.csv")
+        cis = get_cis(bn)
+        r = [bn.get_cardinality(each) for each in train.columns]
+        names = train.columns.tolist()
+        return r, names, train, test, cis
+
+    if name == "numom2b_multi_apo":
+        bn = BIFReader(f"numom2b-2.bif").get_model()
+        df = pd.read_csv("numom2b.csv")
+        train, test = train_test_split(df, stratify=df[["NewHTN","PReEc","PTB"]], test_size=0.5, random_state=0)
         cis = get_cis(bn)
         r = [bn.get_cardinality(each) for each in train.columns]
         names = train.columns.tolist()

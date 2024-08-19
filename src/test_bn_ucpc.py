@@ -28,7 +28,7 @@ random.seed(0)
 np.random.seed(0)
 torch.manual_seed(0)
 
-for name in ["earthquake", "asia", "sachs"]:
+for name in ["asia", "earthquake", "sachs", "survey"]:
     r, names, train, test, cis = get_bn_dataset(name)
     train_dataset, train_loader = get_data_loader(train, batch_size=64)
     test_dataset, test_loader = get_data_loader(test, batch_size=64)
@@ -37,9 +37,9 @@ for name in ["earthquake", "asia", "sachs"]:
     ll = []
     for trial in range(3):
         model = torch.load(f"{name}-{trial}-{0}.pt")
-        base.append(log_likelihood(test_loader, model, device="cuda"))
+        base.append(log_likelihood(test_loader, model, device="cpu"))
         
         model = torch.load(f"{name}-{trial}-{10}.pt")
-        ll.append(log_likelihood(test_loader, model, device="cuda"))
+        ll.append(log_likelihood(test_loader, model, device="cpu"))
     
     print (f"{name}, {np.mean(base):.3f} ± {np.std(base):.2f}, {np.mean(ll):.3f} ±{np.std(ll):.2f}")

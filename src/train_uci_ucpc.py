@@ -46,7 +46,8 @@ def make_spn(S, I, R, D, F, C, device, leaf_base_class, leaf_base_kwargs=None) -
         return model
 
 
-def train_model(model, train_loader, constraints, n_iterations=1000, t_max=0, tol=1e-4, device='cpu'):
+
+def train_model(model, train_loader, constraints, n_iterations=1000, t_min=-1, t_max=0, tol=1e-4, device='cpu'):
     
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -55,7 +56,8 @@ def train_model(model, train_loader, constraints, n_iterations=1000, t_max=0, to
     prev_penalty, total_penalty = 0, 0
     config_data = {}
     prev_loss = 0
-    for t in range(-1, t_max):    
+    for t in range(t_min, t_max):
+        # torch.cuda.empty_cache()
         total_data_loss, total_penalty = 0, 0
         for iteration in trange(n_iterations):
             total_loss = 0
@@ -64,17 +66,17 @@ def train_model(model, train_loader, constraints, n_iterations=1000, t_max=0, to
                 optimizer.zero_grad()
                 outputs = model(data)
                 loss = -outputs.sum() / data.shape[0]
-                total_data_loss += loss
+                total_data_loss += loss.detach()
                 
                 penalty = torch.tensor(0.0, device=device)
                 for constraint in constraints:
                     penalty += constraint.violation(model, train_loader.dataset, config_data, device=device, batch_size=64)
                 
-                total_penalty += penalty
+                total_penalty += penalty.detach()
                 if t >= 0:
                     lambda_ = 10**t
                     loss += lambda_*penalty
-                total_loss += loss
+                total_loss += loss.detach()
                 loss.backward()
                 optimizer.step()
             
@@ -82,14 +84,22 @@ def train_model(model, train_loader, constraints, n_iterations=1000, t_max=0, to
             if iteration > 0:
                 rel_change_loss = (prev_loss - total_loss) / prev_loss
                 
+            """
             if iteration >0 and rel_change_loss < tol:
                 break
+            """
             prev_loss = total_loss
+
+        with torch.no_grad():
+            penalty = torch.tensor(0.0, device=device)
+            for constraint in constraints:
+                penalty += constraint.violation(model, train_loader.dataset, config_data, device=device, batch_size=64)
+        total_penalty = float(penalty)
         
+        
+        print (f"{iteration} {t} {total_data_loss/(iteration+1):.4f} {rel_change_loss} {total_penalty/(iteration+1)}")
         if t >= 0 and total_penalty/(iteration+1) < tol:
             break
-        print (f"{iteration} {t} {total_data_loss/(iteration+1):.4f} {rel_change_loss} {total_penalty/(iteration+1)}")
-        
     return model
             
 
@@ -107,13 +117,13 @@ df, r, target, monotonicities = get_uci_dataset(name)
 names = df.columns.tolist()
 train, test = train_test_split(df, stratify=df[target], test_size=0.5, random_state=0)
 
-train_dataset, train_loader = get_data_loader(train, batch_size=64)
-test_dataset, test_loader = get_data_loader(train, batch_size=64)
+train_dataset, train_loader = get_data_loader(train, batch_size=512)
+test_dataset, test_loader = get_data_loader(train, batch_size=512)
 
 rat_S, rat_I, rat_D, rat_R, rat_C, leaves = 20, 20, 2, 5, 1,Categorical #RatNormal
 n_features = len(r)
 
-device = torch.device("cuda")
+device = torch.device("cpu")
 dropout = 0
 epsilon = 0.001
 
@@ -124,8 +134,9 @@ constraints = [
 
 model = make_spn(S=rat_S, I=rat_I, D=rat_D, R=rat_R, device=device, F=n_features, C=rat_C,leaf_base_class=leaves, leaf_base_kwargs=dict(num_bins=max(r)))
 
-model = train_model(model, train_loader, constraints, t_max=0, tol=1e-16,device=device)
+model = train_model(model, train_loader, constraints, t_max=0, tol=1e-6,device=device, n_iterations=100)
 torch.save(model, f"{name}-{trial}-0.pt")
 
-model = train_model(model, train_loader, constraints, t_max=10, tol=1e-16,device=device)
+for i in range(len(constraints)):
+    model = train_model(model, train_loader, constraints[0:i], t_min=0, t_max=10, tol=1e-6,device=device, n_iterations=100)
 torch.save(model, f"{name}-{trial}-10.pt")
